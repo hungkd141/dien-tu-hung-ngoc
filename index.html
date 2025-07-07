@@ -81,22 +81,25 @@
 
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
-  apiKey: "AIzaSyDhulXkeejEKhmdFYgEeXDGmhyb5tZYrwI",
-  authDomain: "dien-tu-hung-ngoc.firebaseapp.com",
-  projectId: "dien-tu-hung-ngoc",
-  storageBucket: "dien-tu-hung-ngoc.firebasestorage.app",
-  messagingSenderId: "803794710284",
-  appId: "1:803794710284:web:f2ecd59b4ce23e72a46329"
-};
+            apiKey: "AIzaSyDhulXkeejEKhmdFYgEeXDGmhyb5tZYrwI",
+            authDomain: "dien-tu-hung-ngoc.firebaseapp.com",
+            projectId: "dien-tu-hung-ngoc",
+            storageBucket: "dien-tu-hung-ngoc.appspot.com",
+            messagingSenderId: "803794710284",
+            appId: "1:803794710284:web:f2ecd59b4ce23e72a46329"
+        };
+
         let app; let db; let auth;
+        let isFirebaseInitialized = false;
         try { 
-            app = firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            auth = firebase.auth();
+            if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== "AIza....") {
+                app = firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                auth = firebase.auth();
+                isFirebaseInitialized = true;
+            }
         } catch (e) { 
             console.error("Lỗi khởi tạo Firebase:", e); 
-            const root = document.getElementById('root');
-            root.innerHTML = `<div style="padding: 2rem; text-align: center; font-family: sans-serif; color: red;"><h1>Lỗi Cấu hình Firebase</h1><p>Vui lòng kiểm tra lại thông tin cấu hình Firebase trong mã nguồn.</p></div>`;
         }
 
         // --- HELPER FUNCTIONS ---
@@ -104,13 +107,60 @@
             if (!str) return '';
             return str.toLowerCase().replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase());
         };
+        
+        const formatNumber = (value) => {
+            if (value === null || value === undefined || value === '') return '';
+            const numberValue = parseInt(String(value).replace(/[^0-9]/g, ''), 10);
+            if (isNaN(numberValue)) return '';
+            return numberValue.toLocaleString('vi-VN');
+        };
+
+        const parseFormattedNumber = (value) => {
+            if (typeof value === 'number') return value;
+            if (!value) return 0;
+            return parseFloat(String(value).replace(/\./g, '')) || 0;
+        };
+
+
+        function exportToCSV(data, filename) {
+            if (data.length === 0) {
+                alert("Không có dữ liệu để xuất.");
+                return;
+            }
+            
+            const headers = Object.keys(data[0]);
+            const csvRows = [headers.join(',')];
+
+            for (const row of data) {
+                const values = headers.map(header => {
+                    let cell = row[header] === null || row[header] === undefined ? '' : row[header];
+                    if (typeof cell === 'object' && cell instanceof firebase.firestore.Timestamp) {
+                        cell = cell.toDate().toLocaleDateString('vi-VN');
+                    }
+                    const cellString = String(cell);
+                    const escaped = cellString.replace(/"/g, '""');
+                    return `"${escaped}"`;
+                });
+                csvRows.push(values.join(','));
+            }
+
+            const blob = new Blob(["\uFEFF" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         // --- UI COMPONENTS ---
         const inputStyle = "mt-1 block w-full rounded-md border-slate-300 bg-white py-2 px-3 shadow-sm placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 sm:text-sm";
         const formInputStyle = "mt-1 block w-full rounded-md border-2 border-sky-300 bg-white py-2 px-3 shadow-sm placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 sm:text-sm";
 
         const NewOrderModal = ({ isOpen, onClose, onSave, orderToEdit }) => {
-            const initialFormState = { customerName: '', customerPhone: '', customerAddress: '', deviceType: 'Điện thoại', deviceModel: '', deviceSerial: '', devicePassword: '', initialCondition: '', reportedProblem: '', isWarranty: false, originalInvoiceId: '', otherDeviceType: '' };
+            const initialFormState = { customerName: '', customerPhone: '', customerAddress: '', deviceType: 'Điện thoại', deviceModel: '', deviceSerial: '', devicePassword: '', initialCondition: '', reportedProblem: '', isWarranty: false, originalInvoiceId: '', otherDeviceType: '', completionTime: '' };
             const [formData, setFormData] = React.useState(initialFormState);
             
             React.useEffect(() => {
@@ -118,7 +168,14 @@
                     if (orderToEdit) {
                         setFormData({ ...initialFormState, ...orderToEdit });
                     } else {
-                        setFormData(initialFormState);
+                        const now = new Date();
+                        const day = String(now.getDate()).padStart(2, '0');
+                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                        const year = now.getFullYear();
+                        const hours = String(now.getHours()).padStart(2, '0');
+                        const minutes = String(now.getMinutes()).padStart(2, '0');
+                        const defaultCompletionTime = `${hours}:${minutes} Ngày ${day}/${month}/${year}`;
+                        setFormData({ ...initialFormState, completionTime: defaultCompletionTime });
                     }
                 }
             }, [isOpen, orderToEdit]);
@@ -127,13 +184,13 @@
             const handleChange = (e) => { 
                 const { name, value, type, checked } = e.target; 
                 let processedValue = type === 'checkbox' ? checked : value;
-                if (name === 'customerName' || name === 'customerAddress') {
+                if (['customerName', 'customerAddress', 'deviceModel', 'initialCondition', 'reportedProblem', 'otherDeviceType', 'partName', 'serviceName', 'location'].includes(name)) {
                     processedValue = capitalizeWords(processedValue);
                 }
                 setFormData(prev => ({ ...prev, [name]: processedValue })); 
             };
             const handleSubmit = (e) => { e.preventDefault(); onSave(formData); onClose(); };
-            return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"><div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div className="flex justify-between items-center p-4 border-b"><h2 className="text-xl font-bold text-gray-800">{orderToEdit ? 'Chỉnh sửa Phiếu Sửa chữa' : 'Tạo Phiếu Sửa Chữa Mới'}</h2><button onClick={onClose} className="text-gray-500 hover:text-gray-800"><CloseIcon /></button></div><form onSubmit={handleSubmit} className="p-6 space-y-4"><fieldset className="border rounded-md p-4"><legend className="text-lg font-semibold px-2 text-gray-700">Thông Tin Khách Hàng</legend><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-600">Họ và Tên</label><input type="text" name="customerName" value={formData.customerName} onChange={handleChange} className={formInputStyle} required /></div><div><label className="block text-sm font-medium text-gray-600">Số Điện Thoại</label><input type="tel" name="customerPhone" value={formData.customerPhone} onChange={handleChange} className={formInputStyle} required /></div><div className="md:col-span-2"><label className="block text-sm font-medium text-gray-600">Địa chỉ</label><input type="text" name="customerAddress" value={formData.customerAddress} onChange={handleChange} className={formInputStyle} /></div></div></fieldset><fieldset className="border rounded-md p-4"><legend className="text-lg font-semibold px-2 text-gray-700">Thông Tin Thiết Bị</legend><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-600">Loại Thiết Bị</label><select name="deviceType" value={formData.deviceType} onChange={handleChange} className={formInputStyle}><option>Điện thoại</option><option>Laptop</option><option>Máy tính bảng</option><option>Đồng hồ thông minh</option><option>Khác</option></select></div>{formData.deviceType === 'Khác' && (<div><label className="block text-sm font-medium text-gray-600">Vui lòng nhập loại thiết bị</label><input type="text" name="otherDeviceType" value={formData.otherDeviceType} onChange={handleChange} className={formInputStyle} placeholder="VD: Loa Bluetooth, Tai nghe..." required /></div>)}<div><label className="block text-sm font-medium text-gray-600">Model Máy</label><input type="text" name="deviceModel" value={formData.deviceModel} onChange={handleChange} className={formInputStyle} required /></div><div><label className="block text-sm font-medium text-gray-600">IMEI / Serial</label><input type="text" name="deviceSerial" value={formData.deviceSerial} onChange={handleChange} className={formInputStyle} required /></div><div><label className="block text-sm font-medium text-gray-600">Mật khẩu màn hình</label><input type="text" name="devicePassword" value={formData.devicePassword} onChange={handleChange} className={formInputStyle} /></div></div></fieldset><fieldset className="border rounded-md p-4"><legend className="text-lg font-semibold px-2 text-gray-700">Tình Trạng & Vấn Đề</legend><div className="grid grid-cols-1 gap-4"><div><label className="block text-sm font-medium text-gray-600">Tình trạng máy khi nhận</label><textarea name="initialCondition" value={formData.initialCondition} onChange={handleChange} rows="3" className={formInputStyle} placeholder="Ví dụ: Trầy xước nhẹ ở góc, màn hình bị nứt..."></textarea></div><div><label className="block text-sm font-medium text-gray-600">Vấn đề khách báo</label><textarea name="reportedProblem" value={formData.reportedProblem} onChange={handleChange} rows="3" className={formInputStyle} placeholder="Ví dụ: Không lên nguồn, màn hình cảm ứng không nhạy..." required></textarea></div></div></fieldset><fieldset className="border rounded-md p-4"><legend className="text-lg font-semibold px-2 text-gray-700">Bảo hành</legend><div className="space-y-2"><div className="flex items-center"><input id="isWarranty" name="isWarranty" type="checkbox" checked={formData.isWarranty} onChange={handleChange} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" /><label htmlFor="isWarranty" className="ml-2 block text-sm text-gray-900">Đây là phiếu bảo hành</label></div>{formData.isWarranty && (<div><label className="block text-sm font-medium text-gray-600">Mã hóa đơn/phiếu gốc</label><input type="text" name="originalInvoiceId" value={formData.originalInvoiceId} onChange={handleChange} className={formInputStyle} placeholder="Nhập mã hóa đơn gốc..." required /></div>)}</div></fieldset><div className="flex justify-end pt-4 space-x-2"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Hủy</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Lưu</button></div></form></div></div>);
+            return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"><div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div className="flex justify-between items-center p-4 border-b"><h2 className="text-xl font-bold text-gray-800">{orderToEdit ? 'Chỉnh sửa Phiếu Sửa chữa' : 'Tạo Phiếu Sửa Chữa Mới'}</h2><button onClick={onClose} className="text-gray-500 hover:text-gray-800"><CloseIcon /></button></div><form onSubmit={handleSubmit} className="p-6 space-y-4"><fieldset className="border rounded-md p-4"><legend className="text-lg font-semibold px-2 text-gray-700">Thông Tin Khách Hàng</legend><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-600">Họ và Tên</label><input type="text" name="customerName" value={formData.customerName} onChange={handleChange} className={formInputStyle} required /></div><div><label className="block text-sm font-medium text-gray-600">Số Điện Thoại</label><input type="tel" name="customerPhone" value={formData.customerPhone} onChange={handleChange} className={formInputStyle} required /></div><div className="md:col-span-2"><label className="block text-sm font-medium text-gray-600">Địa chỉ</label><input type="text" name="customerAddress" value={formData.customerAddress} onChange={handleChange} className={formInputStyle} /></div></div></fieldset><fieldset className="border rounded-md p-4"><legend className="text-lg font-semibold px-2 text-gray-700">Thông Tin Thiết Bị</legend><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-600">Loại Thiết Bị</label><select name="deviceType" value={formData.deviceType} onChange={handleChange} className={formInputStyle}><option>Điện thoại</option><option>Laptop</option><option>Máy tính bảng</option><option>Đồng hồ thông minh</option><option>Khác</option></select></div>{formData.deviceType === 'Khác' && (<div><label className="block text-sm font-medium text-gray-600">Vui lòng nhập loại thiết bị</label><input type="text" name="otherDeviceType" value={formData.otherDeviceType} onChange={handleChange} className={formInputStyle} placeholder="VD: Loa Bluetooth, Tai nghe..." required /></div>)}<div><label className="block text-sm font-medium text-gray-600">Model Máy</label><input type="text" name="deviceModel" value={formData.deviceModel} onChange={handleChange} className={formInputStyle} required /></div><div><label className="block text-sm font-medium text-gray-600">IMEI / Serial</label><input type="text" name="deviceSerial" value={formData.deviceSerial} onChange={handleChange} className={formInputStyle} required /></div><div><label className="block text-sm font-medium text-gray-600">Mật khẩu màn hình</label><input type="text" name="devicePassword" value={formData.devicePassword} onChange={handleChange} className={formInputStyle} /></div></div></fieldset><fieldset className="border rounded-md p-4"><legend className="text-lg font-semibold px-2 text-gray-700">Tình Trạng & Vấn Đề</legend><div className="grid grid-cols-1 gap-4"><div><label className="block text-sm font-medium text-gray-600">Tình trạng máy khi nhận</label><textarea name="initialCondition" value={formData.initialCondition} onChange={handleChange} rows="3" className={formInputStyle} placeholder="Ví dụ: Trầy xước nhẹ ở góc, màn hình bị nứt..."></textarea></div><div><label className="block text-sm font-medium text-gray-600">Vấn đề khách báo</label><textarea name="reportedProblem" value={formData.reportedProblem} onChange={handleChange} rows="3" className={formInputStyle} placeholder="Ví dụ: Không lên nguồn, màn hình cảm ứng không nhạy..." required></textarea></div><div><label className="block text-sm font-medium text-gray-600">Thời gian hẹn trả</label><input type="text" name="completionTime" value={formData.completionTime} onChange={handleChange} className={formInputStyle} placeholder="VD: 3-5 ngày, 17h ngày 25/12..." /></div></div></fieldset><fieldset className="border rounded-md p-4"><legend className="text-lg font-semibold px-2 text-gray-700">Bảo hành</legend><div className="space-y-2"><div className="flex items-center"><input id="isWarranty" name="isWarranty" type="checkbox" checked={formData.isWarranty} onChange={handleChange} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" /><label htmlFor="isWarranty" className="ml-2 block text-sm text-gray-900">Đây là phiếu bảo hành</label></div>{formData.isWarranty && (<div><label className="block text-sm font-medium text-gray-600">Mã hóa đơn/phiếu gốc</label><input type="text" name="originalInvoiceId" value={formData.originalInvoiceId} onChange={handleChange} className={formInputStyle} placeholder="Nhập mã hóa đơn gốc..." required /></div>)}</div></fieldset><div className="flex justify-end pt-4 space-x-2"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Hủy</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Lưu</button></div></form></div></div>);
         };
         
         const PrintableReceiptModal = ({ isOpen, onClose, order }) => {
@@ -142,20 +199,26 @@
             const handlePrint = () => {
                 window.print();
             };
+            
+            const getFormattedDate = (date) => {
+                if (!date) return 'N/A';
+                const d = date.toDate ? date.toDate() : new Date(date);
+                return d.toLocaleString('vi-VN');
+            };
 
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
                     <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
-                        <div id="printable-area" className="p-8 text-gray-800 text-sm">
+                        <div id="printable-area" className="p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
-                                <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
-                                <p className="text-sm">Địa chỉ: Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Nam Từ Liêm, Hà Nội </p>
+                                <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
+                                <p className="text-sm">Địa chỉ: Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Xuân Phương, Hà Nội </p>
                                 <p className="text-sm">Điện thoại: 094.632.8386</p>
                             </div>
                             <h2 className="text-xl font-bold text-center mb-6">PHIẾU NHẬN MÁY</h2>
                             <div className="grid grid-cols-2 gap-4 mb-4">
                                 <div><p><strong>Khách hàng:</strong> {order.customerName}</p><p><strong>Điện thoại:</strong> {order.customerPhone}</p></div>
-                                <div className="text-right"><p><strong>Mã Phiếu:</strong> #{order.id.slice(0, 8).toUpperCase()}</p><p><strong>Ngày nhận:</strong> {new Date(order.createdAt).toLocaleDateString('vi-VN')}</p></div>
+                                <div className="text-right"><p><strong>Mã Phiếu:</strong> #{order.id.slice(0, 8).toUpperCase()}</p><p><strong>Ngày giờ nhận:</strong> {getFormattedDate(order.createdAt)}</p></div>
                             </div>
                             <div className="border-t border-b py-4 my-4">
                                 <h3 className="font-bold mb-2">THÔNG TIN THIẾT BỊ</h3>
@@ -167,6 +230,7 @@
                                 <h3 className="font-bold mb-2">TÌNH TRẠNG & YÊU CẦU</h3>
                                 <p><strong>Tình trạng khi nhận:</strong> {order.initialCondition || 'Không có ghi chú'}</p>
                                 <p><strong>Vấn đề khách báo:</strong> {order.reportedProblem}</p>
+                                <p><strong>Thời gian hẹn trả:</strong> {order.completionTime || 'Sẽ báo sau'}</p>
                             </div>
                             <div className="mt-6 text-xs text-gray-600">
                                 <p className="font-bold">Điều khoản:</p>
@@ -259,12 +323,12 @@
 
             return (
                 <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full">
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Sửa chữa</h1><button onClick={handleOpenCreateModal} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition duration-150 ease-in-out w-full md:w-auto"><PlusIcon />Tạo Phiếu Mới</button></div>
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Sửa chữa</h1><div className="flex gap-2"><button onClick={() => exportToCSV(orders.map(o => ({'MaPhieu': o.id, 'TenKhachHang': o.customerName, 'SoDienThoai': o.customerPhone, 'LoaiThietBi': o.deviceType, 'Model': o.deviceModel, 'TrangThai': o.status, 'NgayNhan': o.createdAt?.toDate().toLocaleDateString('vi-VN')})), 'danh-sach-sua-chua.csv')} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700"><DownloadIcon />Xuất File</button><button onClick={handleOpenCreateModal} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Tạo Phiếu Mới</button></div></div>
                     <div className="mb-4"><label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo trạng thái:</label><select id="statusFilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={inputStyle + ' max-w-xs'}><option>Tất cả</option>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select></div>
-                    {loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã Phiếu</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách Hàng</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thiết Bị</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vấn Đề</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày Nhận</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th><th scope="col" className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredOrders.length > 0 ? filteredOrders.map(order => (<tr key={order.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-600">#{order.id.slice(0,6)}</td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{order.customerName}</div><div className="text-sm text-gray-500">{order.customerPhone}</div></td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{order.deviceModel}</div><div className="text-sm text-gray-500">{order.deviceType}</div></td><td className="px-6 py-4 max-w-xs whitespace-normal"><p className="text-sm text-gray-900 truncate">{order.reportedProblem}</p></td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap"><div className="flex items-center gap-2"><select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)} className={`text-xs font-semibold rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-offset-1 ${getStatusColor(order.status)}`} style={{appearance: 'none', WebkitAppearance: 'none'}}>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>{order.isWarranty && <span title="Phiếu bảo hành" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800"><WarrantyIcon/></span>}</div></td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2"><button onClick={() => handleOpenEditModal(order)} className="text-indigo-600 hover:text-indigo-900"><EditIcon /></button>{order.status === 'Sẵn sàng trả khách' && (<button onClick={() => handleOpenInvoiceModal(order)} className="text-green-600 hover:text-green-900">Tạo Hóa đơn</button>)}</td></tr>)) : (<tr><td colSpan="7" className="px-6 py-4 text-center text-gray-500">Không có phiếu sửa chữa nào.</td></tr>)}</tbody></table></div>)}
+                    {loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã Phiếu</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách Hàng</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thiết Bị</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vấn Đề</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày Nhận</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th><th scope="col" className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredOrders.length > 0 ? filteredOrders.map(order => (<tr key={order.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-600">#{order.id.slice(0,6)}</td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{order.customerName}</div><div className="text-sm text-gray-500">{order.customerPhone}</div></td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{order.deviceModel}</div><div className="text-sm text-gray-500">{order.deviceType}</div></td><td className="px-6 py-4 max-w-xs whitespace-normal"><p className="text-sm text-gray-900 truncate">{order.reportedProblem}</p></td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap"><div className="flex items-center gap-2"><select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)} className={`text-xs font-semibold rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-offset-1 ${getStatusColor(order.status)}`} style={{appearance: 'none', WebkitAppearance: 'none'}}>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>{order.isWarranty && <span title="Phiếu bảo hành" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800"><WarrantyIcon/></span>}</div></td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2"><button onClick={() => setReceiptToPrint(order)} className="text-gray-500 hover:text-gray-800" title="In Phiếu hẹn"><PrintIcon /></button><button onClick={() => handleOpenEditModal(order)} className="text-indigo-600 hover:text-indigo-900"><EditIcon /></button>{order.status === 'Sẵn sàng trả khách' && (<button onClick={() => handleOpenInvoiceModal(order)} className="text-green-600 hover:text-green-900">Tạo Hóa đơn</button>)}</td></tr>)) : (<tr><td colSpan="7" className="px-6 py-4 text-center text-gray-500">Không có phiếu sửa chữa nào.</td></tr>)}</tbody></table></div>)}
                     <NewOrderModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveOrder} orderToEdit={editingOrder} />
                     {selectedOrderForInvoice && <InvoiceModal isOpen={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} order={selectedOrderForInvoice} />}
-                    {receiptToPrint && <PrintableReceiptModal isOpen={!!receiptToPrint} onClose={() => setReceiptToPrint(null)} order={receiptToPrint} />}
+                    {receiptToPrint && <PrintableReceiptModal isOpen={!!receiptToPrint} onClose={() => setReceiptToPrint(null)} order={{...receiptToPrint, createdAt: receiptToPrint.createdAt?.toDate ? receiptToPrint.createdAt.toDate() : new Date()}} />}
                 </div>
             );
         };
@@ -278,7 +342,7 @@
                 const q = db.collection(`artifacts/${appId}/public/data/repairOrders`).where("customerPhone", "==", customer.customerPhone);
                 const getHistory = async () => { 
                     try { 
-                        const querySnapshot = await q.get(); 
+                        const querySnapshot = await getDocs(q); 
                         const ordersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         ordersData.sort((a,b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
                         setOrders(ordersData);
@@ -305,41 +369,102 @@
             }, [userId, appId]);
             const handleViewHistory = (customer) => { setSelectedCustomer(customer); setIsHistoryModalOpen(true); };
             const filteredCustomers = React.useMemo(() => customers.filter(c => c.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) || c.customerPhone?.includes(searchTerm)), [customers, searchTerm]);
-            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Quản lý Khách hàng</h1><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm khách hàng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SĐT</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa Chỉ</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lần cuối ghé</th><th scope="col" className="relative px-6 py-3"><span className="sr-only">Hành động</span></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredCustomers.length > 0 ? filteredCustomers.map(customer => (<tr key={customer.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{customer.customerName}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerPhone}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerAddress || 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.lastSeen?.toDate ? customer.lastSeen.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button onClick={() => handleViewHistory(customer)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center gap-1"><HistoryIcon /> Xem Lịch sử</button></td></tr>)) : (<tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Không tìm thấy khách hàng.</td></tr>)}</tbody></table></div>)}<CustomerHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} customer={selectedCustomer} /></div> );
+            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Khách hàng</h1><button onClick={() => exportToCSV(customers.map(c => ({'TenKhachHang': c.customerName, 'SoDienThoai': c.customerPhone, 'DiaChi': c.customerAddress})), 'danh-sach-khach-hang.csv')} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700"><DownloadIcon />Xuất File</button></div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm khách hàng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SĐT</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa Chỉ</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lần cuối ghé</th><th scope="col" className="relative px-6 py-3"><span className="sr-only">Hành động</span></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredCustomers.length > 0 ? filteredCustomers.map(customer => (<tr key={customer.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{customer.customerName}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerPhone}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerAddress || 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.lastSeen?.toDate ? customer.lastSeen.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button onClick={() => handleViewHistory(customer)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center gap-1"><HistoryIcon /> Xem Lịch sử</button></td></tr>)) : (<tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Không tìm thấy khách hàng.</td></tr>)}</tbody></table></div>)}<CustomerHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} customer={selectedCustomer} /></div> );
         };
 
         const PartFormModal = ({ isOpen, onClose, onSave, part }) => {
-            const [formData, setFormData] = React.useState({ partName: '', stockQuantity: '', importPrice: '', salePrice: '', lowStockThreshold: '5' });
+            const [formData, setFormData] = React.useState({ partName: '', location: '', stockQuantity: '', importPrice: '', salePrice: '', lowStockThreshold: '5' });
             React.useEffect(() => { 
                 if(part) {
-                    setFormData({ ...part });
+                    setFormData({ 
+                        ...part,
+                        stockQuantity: formatNumber(part.stockQuantity),
+                        importPrice: formatNumber(part.importPrice),
+                        salePrice: formatNumber(part.salePrice),
+                        lowStockThreshold: formatNumber(part.lowStockThreshold),
+                    });
                 } else {
-                    setFormData({ partName: '', stockQuantity: '', importPrice: '', salePrice: '', lowStockThreshold: '5' });
+                    setFormData({ partName: '', location: '', stockQuantity: '', importPrice: '', salePrice: '', lowStockThreshold: '5' });
                 }
             }, [part, isOpen]);
 
             if (!isOpen) return null;
             const handleChange = (e) => {
                 const { name, value } = e.target;
-                setFormData(prev => ({ ...prev, [name]: value }));
+                if (['stockQuantity', 'importPrice', 'salePrice', 'lowStockThreshold'].includes(name)) {
+                    setFormData(prev => ({ ...prev, [name]: formatNumber(value) }));
+                } else {
+                    setFormData(prev => ({ ...prev, [name]: capitalizeWords(value) }));
+                }
             };
             const handleSubmit = (e) => { 
                 e.preventDefault(); 
                 const dataToSave = {
                     ...formData,
-                    stockQuantity: parseFloat(formData.stockQuantity) || 0,
-                    importPrice: parseFloat(formData.importPrice) || 0,
-                    salePrice: parseFloat(formData.salePrice) || 0,
-                    lowStockThreshold: parseFloat(formData.lowStockThreshold) || 5,
+                    stockQuantity: parseFormattedNumber(formData.stockQuantity),
+                    importPrice: parseFormattedNumber(formData.importPrice),
+                    salePrice: parseFormattedNumber(formData.salePrice),
+                    lowStockThreshold: parseFormattedNumber(formData.lowStockThreshold),
                 };
                 onSave(dataToSave); 
                 onClose(); 
             };
-            return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"><div className="bg-white rounded-lg shadow-2xl w-full max-w-lg"><div className="flex justify-between items-center p-4 border-b"><h2 className="text-xl font-bold text-gray-800">{part ? 'Chỉnh sửa Linh kiện' : 'Thêm Linh kiện mới'}</h2><button onClick={onClose} className="text-gray-500 hover:text-gray-800"><CloseIcon /></button></div><form onSubmit={handleSubmit} className="p-6 space-y-4"><div><label className="block text-sm font-medium text-gray-600">Tên Linh kiện</label><input type="text" name="partName" value={formData.partName} onChange={handleChange} className={formInputStyle} required /></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-600">Số lượng tồn</label><input type="number" name="stockQuantity" value={formData.stockQuantity} onChange={handleChange} className={formInputStyle} placeholder="0" required /></div><div><label className="block text-sm font-medium text-gray-600">Ngưỡng báo hết hàng</label><input type="number" name="lowStockThreshold" value={formData.lowStockThreshold} onChange={handleChange} className={formInputStyle} placeholder="5" required /></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-600">Giá nhập</label><input type="number" name="importPrice" value={formData.importPrice} onChange={handleChange} className={formInputStyle} placeholder="0" required /></div><div><label className="block text-sm font-medium text-gray-600">Giá bán</label><input type="number" name="salePrice" value={formData.salePrice} onChange={handleChange} className={formInputStyle} placeholder="0" required /></div></div><div className="flex justify-end pt-4 space-x-2"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Hủy</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Lưu</button></div></form></div></div> );
+            return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"><div className="bg-white rounded-lg shadow-2xl w-full max-w-lg"><div className="flex justify-between items-center p-4 border-b"><h2 className="text-xl font-bold text-gray-800">{part ? 'Chỉnh sửa Linh kiện' : 'Thêm Linh kiện mới'}</h2><button onClick={onClose} className="text-gray-500 hover:text-gray-800"><CloseIcon /></button></div><form onSubmit={handleSubmit} className="p-6 space-y-4"><div><label className="block text-sm font-medium text-gray-600">Tên Linh kiện</label><input type="text" name="partName" value={formData.partName} onChange={handleChange} className={formInputStyle} required /></div><div><label className="block text-sm font-medium text-gray-600">Vị trí</label><input type="text" name="location" value={formData.location || ''} onChange={handleChange} className={formInputStyle} placeholder="VD: Kệ A, Ngăn 2"/></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-600">Số lượng tồn</label><input type="text" name="stockQuantity" value={formData.stockQuantity} onChange={handleChange} className={formInputStyle} placeholder="0" required /></div><div><label className="block text-sm font-medium text-gray-600">Ngưỡng báo hết hàng</label><input type="text" name="lowStockThreshold" value={formData.lowStockThreshold} onChange={handleChange} className={formInputStyle} placeholder="5" required /></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-600">Giá nhập</label><input type="text" name="importPrice" value={formData.importPrice} onChange={handleChange} className={formInputStyle} placeholder="0" required /></div><div><label className="block text-sm font-medium text-gray-600">Giá bán</label><input type="text" name="salePrice" value={formData.salePrice} onChange={handleChange} className={formInputStyle} placeholder="0" required /></div></div><div className="flex justify-end pt-4 space-x-2"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Hủy</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Lưu</button></div></form></div></div> );
+        };
+
+        const PrintableInventoryModal = ({ isOpen, onClose, parts }) => {
+            if (!isOpen) return null;
+
+            const handlePrint = () => {
+                window.print();
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
+                        <div id="printable-area" className="p-8 text-gray-800 text-sm overflow-y-auto">
+                            <div className="text-center mb-8">
+                                <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
+                                <p className="text-sm">Ngày in: {new Date().toLocaleDateString('vi-VN')}</p>
+                            </div>
+                            <h2 className="text-xl font-bold text-center mb-6">BÁO CÁO TỒN KHO LINH KIỆN</h2>
+                            <table className="min-w-full divide-y divide-gray-300 mb-4">
+                                <thead className="bg-gray-100">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left text-sm font-semibold">STT</th>
+                                        <th className="px-4 py-2 text-left text-sm font-semibold">Tên Linh kiện</th>
+                                        <th className="px-4 py-2 text-left text-sm font-semibold">Vị trí</th>
+                                        <th className="px-4 py-2 text-right text-sm font-semibold">Số lượng Tồn</th>
+                                        <th className="px-4 py-2 text-right text-sm font-semibold">Giá Nhập</th>
+                                        <th className="px-4 py-2 text-right text-sm font-semibold">Giá Bán</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {parts.map((part, index) => (
+                                        <tr key={part.id} className="border-b">
+                                            <td className="px-4 py-2">{index + 1}</td>
+                                            <td className="px-4 py-2">{part.partName}</td>
+                                            <td className="px-4 py-2">{part.location || ''}</td>
+                                            <td className="px-4 py-2 text-right">{part.stockQuantity}</td>
+                                            <td className="px-4 py-2 text-right">{part.importPrice.toLocaleString('vi-VN')} đ</td>
+                                            <td className="px-4 py-2 text-right">{part.salePrice.toLocaleString('vi-VN')} đ</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="p-4 border-t mt-auto flex justify-end items-center gap-4 no-print">
+                             <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Đóng</button>
+                             <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"><PrintIcon /> In Danh sách</button>
+                        </div>
+                    </div>
+                </div>
+            );
         };
 
         const InventoryPage = ({ userId }) => {
             const [parts, setParts] = React.useState([]); const [loading, setLoading] = React.useState(true); const [error, setError] = React.useState(null); const [searchTerm, setSearchTerm] = React.useState(""); const [isModalOpen, setIsModalOpen] = React.useState(false); const [editingPart, setEditingPart] = React.useState(null);
+            const [isPrintModalOpen, setIsPrintModalOpen] = React.useState(false);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
             React.useEffect(() => {
                 if (!userId || !db) { setLoading(false); return; } setLoading(true);
@@ -368,27 +493,31 @@
 
             const filteredParts = React.useMemo(() => parts.filter(p => p.partName?.toLowerCase().includes(searchTerm.toLowerCase())), [parts, searchTerm]);
 
-            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Kho Linh kiện</h1><button onClick={openModalToAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Thêm Linh kiện</button></div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm linh kiện..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Linh kiện</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tồn kho</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Nhập</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Bán</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredParts.length > 0 ? filteredParts.map(part => (<tr key={part.id} className={part.stockQuantity <= part.lowStockThreshold ? 'bg-yellow-50' : ''}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">{part.partName}{part.stockQuantity <= part.lowStockThreshold && <WarningIcon/>}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.stockQuantity}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.importPrice.toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.salePrice.toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4"><button onClick={() => openModalToEdit(part)} className="text-indigo-600 hover:text-indigo-900"><EditIcon/></button><button onClick={() => handleDeletePart(part.id)} className="text-red-600 hover:text-red-900"><DeleteIcon/></button></td></tr>)) : (<tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Chưa có linh kiện nào.</td></tr>)}</tbody></table></div>)}<PartFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSavePart} part={editingPart} /></div> );
+            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Kho Linh kiện</h1><div className="flex gap-2"><button onClick={() => setIsPrintModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700"><PrintIcon />In Tồn Kho</button><button onClick={openModalToAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Thêm Linh kiện</button></div></div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm linh kiện..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Linh kiện</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Vị trí</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tồn kho</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Nhập</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Bán</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredParts.length > 0 ? filteredParts.map(part => (<tr key={part.id} className={part.stockQuantity <= part.lowStockThreshold ? 'bg-yellow-50' : ''}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">{part.partName}{part.stockQuantity <= part.lowStockThreshold && <WarningIcon/>}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{part.location}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.stockQuantity}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.importPrice.toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.salePrice.toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4"><button onClick={() => openModalToEdit(part)} className="text-indigo-600 hover:text-indigo-900"><EditIcon/></button><button onClick={() => handleDeletePart(part.id)} className="text-red-600 hover:text-red-900"><DeleteIcon/></button></td></tr>)) : (<tr><td colSpan="6" className="px-6 py-4 text-center text-gray-500">Chưa có linh kiện nào.</td></tr>)}</tbody></table></div>)}<PartFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSavePart} part={editingPart} /><PrintableInventoryModal isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)} parts={parts} /></div> );
         };
 
         const ServiceFormModal = ({ isOpen, onClose, onSave, service }) => {
             const [formData, setFormData] = React.useState({ serviceName: '', laborCost: '' });
-            React.useEffect(() => { setFormData(service ? { ...service } : { serviceName: '', laborCost: '' }); }, [service, isOpen]);
+            React.useEffect(() => { setFormData(service ? { ...service, laborCost: formatNumber(service.laborCost) } : { serviceName: '', laborCost: '' }); }, [service, isOpen]);
             if (!isOpen) return null;
             const handleChange = (e) => {
                 const { name, value } = e.target;
-                setFormData(prev => ({ ...prev, [name]: value }));
+                if(name === 'laborCost') {
+                    setFormData(prev => ({ ...prev, [name]: formatNumber(value) }));
+                } else {
+                    setFormData(prev => ({ ...prev, [name]: capitalizeWords(value) }));
+                }
             };
             const handleSubmit = (e) => { 
                 e.preventDefault(); 
                 const dataToSave = {
                     ...formData,
-                    laborCost: parseFloat(formData.laborCost) || 0,
+                    laborCost: parseFormattedNumber(formData.laborCost),
                 };
                 onSave(dataToSave); 
                 onClose(); 
             };
-            return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"><div className="bg-white rounded-lg shadow-2xl w-full max-w-lg"><div className="flex justify-between items-center p-4 border-b"><h2 className="text-xl font-bold text-gray-800">{service ? 'Chỉnh sửa Dịch vụ' : 'Thêm Dịch vụ mới'}</h2><button onClick={onClose} className="text-gray-500 hover:text-gray-800"><CloseIcon /></button></div><form onSubmit={handleSubmit} className="p-6 space-y-4"><div><label className="block text-sm font-medium text-gray-600">Tên Dịch vụ</label><input type="text" name="serviceName" value={formData.serviceName} onChange={handleChange} className={formInputStyle} required /></div><div><label className="block text-sm font-medium text-gray-600">Tiền công</label><input type="number" name="laborCost" value={formData.laborCost} onChange={handleChange} className={formInputStyle} placeholder="0" required /></div><div className="flex justify-end pt-4 space-x-2"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Hủy</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Lưu</button></div></form></div></div> );
+            return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"><div className="bg-white rounded-lg shadow-2xl w-full max-w-lg"><div className="flex justify-between items-center p-4 border-b"><h2 className="text-xl font-bold text-gray-800">{service ? 'Chỉnh sửa Dịch vụ' : 'Thêm Dịch vụ mới'}</h2><button onClick={onClose} className="text-gray-500 hover:text-gray-800"><CloseIcon /></button></div><form onSubmit={handleSubmit} className="p-6 space-y-4"><div><label className="block text-sm font-medium text-gray-600">Tên Dịch vụ</label><input type="text" name="serviceName" value={formData.serviceName} onChange={handleChange} className={formInputStyle} required /></div><div><label className="block text-sm font-medium text-gray-600">Tiền công</label><input type="text" name="laborCost" value={formData.laborCost} onChange={handleChange} className={formInputStyle} placeholder="0" required /></div><div className="flex justify-end pt-4 space-x-2"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Hủy</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Lưu</button></div></form></div></div> );
         };
 
         const ServicesPage = ({ userId }) => {
@@ -474,10 +603,25 @@
             }, [isOpen, appId]);
 
             const addItem = (type, item) => {
-                const newItem = type === 'service' 
-                    ? { id: `svc_${item.id}`, name: item.serviceName, price: item.laborCost, type: 'service' }
-                    : { id: `prt_${item.id}`, name: item.partName, price: item.salePrice, type: 'part', partId: item.id, quantity: 1 };
-                setItems(prev => [...prev, newItem]);
+                const newItemId = type === 'service' ? `svc_${item.id}` : `prt_${item.id}`;
+                
+                setItems(prevItems => {
+                    const existingItem = prevItems.find(i => i.id === newItemId);
+
+                    if (existingItem) {
+                        if (type === 'part') {
+                            return prevItems.map(i => 
+                                i.id === newItemId ? { ...i, quantity: i.quantity + 1 } : i
+                            );
+                        }
+                        return prevItems;
+                    } else {
+                        const newItem = type === 'service' 
+                            ? { id: `svc_${item.id}`, name: item.serviceName, price: item.laborCost, type: 'service', quantity: 1 }
+                            : { id: `prt_${item.id}`, name: item.partName, price: item.salePrice, type: 'part', partId: item.id, quantity: 1 };
+                        return [...prevItems, newItem];
+                    }
+                });
             };
 
             const removeItem = (itemId) => {
@@ -529,9 +673,29 @@
                             <div className="md:col-span-2">
                                 <h3 className="text-lg font-semibold mb-2">Chi tiết Hóa đơn</h3>
                                 <div className="bg-gray-50 rounded-lg p-4 min-h-[200px]">
-                                    <table className="min-w-full">
-                                        <thead><tr><th className="text-left">Mục</th><th className="text-right">Đơn giá</th><th className="text-right"></th></tr></thead>
-                                        <tbody>{items.map((item) => ( <tr key={item.id}><td className="py-1">{item.name}</td><td className="py-1 text-right">{item.price.toLocaleString('vi-VN')} đ</td><td className="py-1 text-right"><button onClick={() => removeItem(item.id)} className="text-red-500 hover:text-red-700 text-xs">Xóa</button></td></tr> ))}</tbody>
+                                    <table className="min-w-full text-sm">
+                                        <thead className="border-b-2 border-gray-200">
+                                            <tr>
+                                                <th className="text-left font-semibold text-gray-600 p-2">Mục</th>
+                                                <th className="text-center font-semibold text-gray-600 p-2">SL</th>
+                                                <th className="text-right font-semibold text-gray-600 p-2">Đơn giá</th>
+                                                <th className="text-right font-semibold text-gray-600 p-2">Thành tiền</th>
+                                                <th className="text-right"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {items.map((item) => (
+                                                <tr key={item.id} className="border-b border-gray-100">
+                                                    <td className="py-2 px-2">{item.name}</td>
+                                                    <td className="py-2 px-2 text-center">{item.quantity}</td>
+                                                    <td className="py-2 px-2 text-right">{item.price.toLocaleString('vi-VN')} đ</td>
+                                                    <td className="py-2 px-2 text-right font-medium">{(item.price * item.quantity).toLocaleString('vi-VN')} đ</td>
+                                                    <td className="py-2 px-2 text-right">
+                                                        <button onClick={() => removeItem(item.id)} className="text-red-500 hover:text-red-700 text-xs">Xóa</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
                                     </table>
                                 </div>
                                 <div className="text-right mt-4 text-xl font-bold">Tổng cộng: {total.toLocaleString('vi-VN')} đ</div>
@@ -625,10 +789,10 @@
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
                     <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
-                        <div id="printable-area" className="p-8 text-gray-800 text-sm">
+                        <div id="printable-area" className="p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
-                                <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
-                                <p className="text-sm">Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Nam Từ Liêm, Hà Nội</p>
+                                <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
+                                <p className="text-sm">Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Xuân Phương, Hà Nội</p>
                                 <p className="text-sm">Điện thoại: 094.632.8386</p>
                             </div>
                             <h2 className="text-xl font-bold text-center mb-6">HÓA ĐƠN THANH TOÁN</h2>
@@ -637,13 +801,13 @@
                                 <div className="text-right"><p><strong>Số HĐ:</strong> #{invoice.id.slice(0, 8).toUpperCase()}</p><p><strong>Ngày:</strong> {invoice.createdAt?.toDate().toLocaleDateString('vi-VN')}</p></div>
                             </div>
                             <table className="min-w-full divide-y divide-gray-300 mb-4">
-                                <thead className="bg-gray-100"><tr><th className="px-4 py-2 text-left text-sm font-semibold">STT</th><th className="px-4 py-2 text-left text-sm font-semibold">Tên mục</th><th className="px-4 py-2 text-right text-sm font-semibold">Đơn giá</th></tr></thead>
-                                <tbody>{invoice.items.map((item, index) => (<tr key={item.id} className="border-b"><td className="px-4 py-2">{index + 1}</td><td className="px-4 py-2">{item.name}</td><td className="px-4 py-2 text-right">{item.price.toLocaleString('vi-VN')} đ</td></tr>))}</tbody>
+                                <thead className="bg-gray-100"><tr><th className="px-4 py-2 text-left text-sm font-semibold">STT</th><th className="px-4 py-2 text-left text-sm font-semibold">Tên mục</th><th className="px-4 py-2 text-center text-sm font-semibold">SL</th><th className="px-4 py-2 text-right text-sm font-semibold">Đơn giá</th><th className="px-4 py-2 text-right text-sm font-semibold">Thành tiền</th></tr></thead>
+                                <tbody>{invoice.items.map((item, index) => (<tr key={item.id} className="border-b"><td className="px-4 py-2">{index + 1}</td><td className="px-4 py-2">{item.name}</td><td className="px-4 py-2 text-center">{item.quantity}</td><td className="px-4 py-2 text-right">{item.price.toLocaleString('vi-VN')} đ</td><td className="px-4 py-2 text-right">{(item.price * item.quantity).toLocaleString('vi-VN')} đ</td></tr>))}</tbody>
                             </table>
                             <div className="text-right text-lg font-bold mb-8">Thành tiền: {invoice.total.toLocaleString('vi-VN')} đ</div>
                             <div className="text-center text-sm text-gray-600">
                                 <p>Cảm ơn quý khách và hẹn gặp lại! </p>
-                                <p>hóa đơn có giá trị kiêm phiếu bảo hành sản phẩm 01 tháng</p>
+                                <p>Hóa đơn có giá trị kiêm phiếu bảo hành sản phẩm 01 tháng</p>
                             </div>
                         </div>
                         <div className="p-4 border-t mt-auto flex justify-end items-center gap-4 no-print">
@@ -805,6 +969,22 @@
             }, [authReady]);
 
             const renderPage = () => {
+                if (!isFirebaseInitialized) {
+                    return (
+                        <div className="flex justify-center items-center h-screen w-screen bg-red-100 text-red-800 p-4">
+                            <div className="text-center">
+                                <h1 className="text-2xl font-bold">Lỗi Cấu hình Firebase</h1>
+                                <p className="mt-2">Không thể kết nối đến cơ sở dữ liệu. Vui lòng thực hiện các bước sau:</p>
+                                <ol className="text-left list-decimal list-inside mt-4 space-y-2">
+                                    <li>Mở file <code>quan-ly-sua-chua.html</code> bằng trình soạn thảo văn bản.</li>
+                                    <li>Tìm đến phần <strong>`// --- FIREBASE CONFIG ---`</strong>.</li>
+                                    <li>Thay thế các giá trị mẫu bằng thông tin cấu hình từ dự án Firebase của bạn.</li>
+                                    <li>Lưu file và làm mới lại trang này.</li>
+                                </ol>
+                            </div>
+                        </div>
+                    );
+                }
                 if (!authReady) { return (<div className="flex justify-center items-center h-screen w-screen"><p className="text-lg">Đang khởi tạo...</p></div>); }
                 switch (activePage) {
                     case 'reports': return <ReportsPage userId={userId} />;
@@ -822,7 +1002,7 @@
                 <div className="min-h-screen bg-slate-100">
                     <Sidebar activePage={activePage} setActivePage={setActivePage} isOpen={isSidebarOpen} setOpen={setSidebarOpen} />
                     <main className="lg:ml-64">
-                        <div className="lg:hidden p-4 bg-white border-b flex justify-between items-center sticky top-0 z-10">
+                        <div className="lg:hidden p-4 bg-white border-b flex justify-between items-center sticky top-0 z-20">
                            <h2 className="font-bold text-lg">RepairShop Pro</h2>
                            <button onClick={() => setSidebarOpen(true)}><MenuIcon /></button>
                         </div>
@@ -833,8 +1013,12 @@
         }
 
         const container = document.getElementById('root');
-        const root = ReactDOM.createRoot(container);
-        root.render(<App />);
+        if (container) {
+            const root = ReactDOM.createRoot(container);
+            root.render(<App />);
+        } else {
+            console.error("Root element not found. Make sure you have a div with id='root' in your HTML.");
+        }
     </script>
 </body>
 </html>
