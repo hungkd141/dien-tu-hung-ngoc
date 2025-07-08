@@ -15,8 +15,8 @@
         window.firebaseApp = { initializeApp };
     </script>
     <script type="module">
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        window.firebaseAuth = { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged };
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        window.firebaseAuth = { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     </script>
     <script type="module">
         import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, getDocs, getDoc, serverTimestamp, Timestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -77,6 +77,7 @@
         const InfoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>;
         const SuccessIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>;
         const ErrorIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>;
+        const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 
         // --- HELPER FUNCTIONS ---
         const capitalizeWords = (str) => {
@@ -860,7 +861,7 @@
 
         // --- PAGES ---
         const PlaceholderComponent = ({ title }) => (<div className="p-8 flex justify-center items-center h-full bg-slate-100"><div className="text-center"><h1 className="text-4xl font-bold text-gray-800 capitalize">{title}</h1><p className="mt-2 text-gray-500">Module đang trong quá trình phát triển.</p><div className="mt-6"><div className="bg-gray-200 h-40 w-full max-w-md mx-auto rounded-lg animate-pulse"></div></div></div></div>);
-        const RepairOrdersPage = ({ db, userId, showNotification }) => {
+        const RepairOrdersPage = ({ db, userId, showNotification, userRole }) => {
             const [orders, setOrders] = React.useState([]);
             const [isModalOpen, setIsModalOpen] = React.useState(false);
             const [editingOrder, setEditingOrder] = React.useState(null);
@@ -873,6 +874,7 @@
             const repairStatuses = React.useMemo(() => ["Mới nhận", "Đang kiểm tra", "Chờ báo giá", "Chờ linh kiện", "Đang sửa", "Sửa xong, chờ QC", "Sẵn sàng trả khách", "Đã trả khách"], []);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
             const { collection, query, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, setDoc } = window.firebaseFirestore;
+            const isUserAdmin = userRole === 'admin';
 
             React.useEffect(() => {
                 if (!userId || !db) { setLoading(false); return; }
@@ -948,7 +950,7 @@
                 'NgayNhan': o.createdAt
             })), [orders]);
 
-            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Sửa chữa</h1><div className="flex gap-2"><button onClick={() => exportToCSV(dataToExport, 'danh-sach-sua-chua.csv', showNotification)} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700"><DownloadIcon />Xuất File</button><button onClick={handleOpenCreateModal} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Tạo Phiếu Mới</button></div></div><div className="mb-4"><label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo trạng thái:</label><select id="statusFilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={inputStyle + ' max-w-xs'}><option>Tất cả</option>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách Hàng</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thiết Bị</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vấn Đề</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chẩn đoán / Chi phí</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày Nhận</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th><th scope="col" className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredOrders.length > 0 ? filteredOrders.map(order => (<tr key={order.id} className="hover:bg-gray-50"><td className="px-6 py-4 align-top whitespace-normal"><div className="text-sm font-medium text-gray-900">{order.customerName}</div><div className="text-sm text-gray-500">{order.customerPhone}</div></td><td className="px-6 py-4 align-top whitespace-normal"><div className="text-sm text-gray-900">{order.deviceModel}</div><div className="text-sm text-gray-500">{order.deviceType}</div></td><td className="px-6 py-4 align-top max-w-xs whitespace-normal"><p className="text-sm text-gray-900">{order.reportedProblem}</p></td><td className="px-6 py-4 align-top max-w-xs whitespace-normal"><p className="text-sm text-gray-900">{order.diagnosis || ''}</p>{order.estimatedCost > 0 && <p className="text-sm text-green-600 font-medium">{formatNumber(order.estimatedCost)} đ</p>}</td><td className="px-6 py-4 align-top whitespace-nowrap text-sm text-gray-500">{order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 align-top whitespace-nowrap"><div className="flex items-center gap-2"><select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)} className={`text-xs font-semibold rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-offset-1 ${getStatusColor(order.status)}`} style={{appearance: 'none', WebkitAppearance: 'none'}}>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>{order.isWarranty && <span title="Phiếu bảo hành" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800"><WarrantyIcon/></span>}</div></td><td className="px-6 py-4 align-top whitespace-nowrap text-right text-sm font-medium space-x-2"><button onClick={() => setReceiptToPrint(order)} className="text-gray-500 hover:text-gray-800" title="In Phiếu hẹn"><PrintIcon /></button><button onClick={() => handleOpenEditModal(order)} className="text-indigo-600 hover:text-indigo-900"><EditIcon /></button>{order.status === 'Sẵn sàng trả khách' && (<button onClick={() => handleOpenInvoiceModal(order)} className="text-green-600 hover:text-green-900">Tạo Hóa đơn</button>)}</td></tr>)) : (<tr><td colSpan="7" className="px-6 py-4 text-center text-gray-500">Không có phiếu sửa chữa nào.</td></tr>)}</tbody></table></div>)}<NewOrderModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveOrder} orderToEdit={editingOrder} /><InvoiceModal isOpen={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} order={selectedOrderForInvoice} db={db} showNotification={showNotification} /><ViewAndPrintModal isOpen={!!receiptToPrint} onClose={() => setReceiptToPrint(null)} title={receiptToPrint?.isWarranty ? "In Phiếu Bảo Hành" : "In Phiếu Nhận Máy"}><ReceiptContent order={receiptToPrint} /></ViewAndPrintModal></div>);
+            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Sửa chữa</h1><div className="flex gap-2"><button onClick={() => exportToCSV(dataToExport, 'danh-sach-sua-chua.csv', showNotification)} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700"><DownloadIcon />Xuất File</button><button onClick={handleOpenCreateModal} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Tạo Phiếu Mới</button></div></div><div className="mb-4"><label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo trạng thái:</label><select id="statusFilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={inputStyle + ' max-w-xs'}><option>Tất cả</option>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách Hàng</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thiết Bị</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vấn Đề</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chẩn đoán / Chi phí</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày Nhận</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th><th scope="col" className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredOrders.length > 0 ? filteredOrders.map(order => (<tr key={order.id} className="hover:bg-gray-50"><td className="px-6 py-4 align-top whitespace-normal"><div className="text-sm font-medium text-gray-900">{order.customerName}</div><div className="text-sm text-gray-500">{order.customerPhone}</div></td><td className="px-6 py-4 align-top whitespace-normal"><div className="text-sm text-gray-900">{order.deviceModel}</div><div className="text-sm text-gray-500">{order.deviceType}</div></td><td className="px-6 py-4 align-top max-w-xs whitespace-normal"><p className="text-sm text-gray-900">{order.reportedProblem}</p></td><td className="px-6 py-4 align-top max-w-xs whitespace-normal"><p className="text-sm text-gray-900">{order.diagnosis || ''}</p>{order.estimatedCost > 0 && <p className="text-sm text-green-600 font-medium">{formatNumber(order.estimatedCost)} đ</p>}</td><td className="px-6 py-4 align-top whitespace-nowrap text-sm text-gray-500">{order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 align-top whitespace-nowrap"><div className="flex items-center gap-2"><select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)} className={`text-xs font-semibold rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-offset-1 ${getStatusColor(order.status)}`} style={{appearance: 'none', WebkitAppearance: 'none'}}>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>{order.isWarranty && <span title="Phiếu bảo hành" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800"><WarrantyIcon/></span>}</div></td><td className="px-6 py-4 align-top whitespace-nowrap text-right text-sm font-medium space-x-2"><button onClick={() => setReceiptToPrint(order)} className="text-gray-500 hover:text-gray-800" title="In Phiếu hẹn"><PrintIcon /></button>{isUserAdmin && <button onClick={() => handleOpenEditModal(order)} className="text-indigo-600 hover:text-indigo-900"><EditIcon /></button>}{order.status === 'Sẵn sàng trả khách' && (<button onClick={() => handleOpenInvoiceModal(order)} className="text-green-600 hover:text-green-900">Tạo Hóa đơn</button>)}</td></tr>)) : (<tr><td colSpan="7" className="px-6 py-4 text-center text-gray-500">Không có phiếu sửa chữa nào.</td></tr>)}</tbody></table></div>)}<NewOrderModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveOrder} orderToEdit={editingOrder} /><InvoiceModal isOpen={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} order={selectedOrderForInvoice} db={db} showNotification={showNotification} /><ViewAndPrintModal isOpen={!!receiptToPrint} onClose={() => setReceiptToPrint(null)} title={receiptToPrint?.isWarranty ? "In Phiếu Bảo Hành" : "In Phiếu Nhận Máy"}><ReceiptContent order={receiptToPrint} /></ViewAndPrintModal></div>);
         };
         const CustomersPage = ({ db, userId, showNotification }) => {
             const [customers, setCustomers] = React.useState([]); const [loading, setLoading] = React.useState(true); const [error, setError] = React.useState(null); const [searchTerm, setSearchTerm] = React.useState(""); const [selectedCustomer, setSelectedCustomer] = React.useState(null); const [isHistoryModalOpen, setIsHistoryModalOpen] = React.useState(false);
@@ -974,11 +976,12 @@
             const filteredCustomers = React.useMemo(() => customers.filter(c => c.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) || c.customerPhone?.includes(searchTerm)), [customers, searchTerm]);
             return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Khách hàng</h1><button onClick={() => exportToCSV(customers, 'danh-sach-khach-hang.csv', showNotification)} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700"><DownloadIcon />Xuất File</button></div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm khách hàng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SĐT</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa Chỉ</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lần cuối ghé</th><th scope="col" className="relative px-6 py-3"><span className="sr-only">Hành động</span></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredCustomers.length > 0 ? filteredCustomers.map(customer => (<tr key={customer.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{customer.customerName}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerPhone}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerAddress || 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.lastSeen?.toDate ? customer.lastSeen.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button onClick={() => handleViewHistory(customer)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center gap-1"><HistoryIcon /> Xem Lịch sử</button></td></tr>)) : (<tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Không tìm thấy khách hàng.</td></tr>)}</tbody></table></div>)}<CustomerHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} customer={selectedCustomer} db={db} /></div> );
         };
-        const InventoryPage = ({ db, userId, showNotification }) => {
+        const InventoryPage = ({ db, userId, showNotification, userRole }) => {
             const [parts, setParts] = React.useState([]); const [loading, setLoading] = React.useState(true); const [error, setError] = React.useState(null); const [searchTerm, setSearchTerm] = React.useState(""); const [isModalOpen, setIsModalOpen] = React.useState(false); const [editingPart, setEditingPart] = React.useState(null); const [isPrintModalOpen, setIsPrintModalOpen] = React.useState(false); const [isPriceListPrintModalOpen, setIsPriceListPrintModalOpen] = React.useState(false);
             const [confirmState, setConfirmState] = React.useState({ isOpen: false, item: null });
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
             const { collection, query, onSnapshot, addDoc, updateDoc, doc, deleteDoc } = window.firebaseFirestore;
+            const isUserAdmin = userRole === 'admin';
 
             React.useEffect(() => {
                 if (!userId || !db) { setLoading(false); return; } setLoading(true);
@@ -1025,13 +1028,14 @@
             const openModalToEdit = (part) => { setEditingPart(part); setIsModalOpen(true); };
             const filteredParts = React.useMemo(() => parts.filter(p => p.partName?.toLowerCase().includes(searchTerm.toLowerCase())), [parts, searchTerm]);
 
-            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Kho Linh kiện</h1><div className="flex gap-2"><button onClick={() => setIsPrintModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700"><PrintIcon />In Tồn Kho</button><button onClick={() => setIsPriceListPrintModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white font-semibold rounded-lg shadow-md hover:bg-cyan-700"><PrintIcon />In Bảng Giá</button><button onClick={openModalToAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Thêm Linh kiện</button></div></div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm linh kiện..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Linh kiện</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Vị trí</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tồn kho</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Nhập</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Bán</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredParts.length > 0 ? filteredParts.map(part => (<tr key={part.id} className={part.stockQuantity <= part.lowStockThreshold ? 'bg-yellow-50' : ''}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">{part.partName}{part.stockQuantity <= part.lowStockThreshold && <WarningIcon/>}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{part.location}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.stockQuantity}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.importPrice.toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.salePrice.toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4"><button onClick={() => openModalToEdit(part)} className="text-indigo-600 hover:text-indigo-900"><EditIcon/></button><button onClick={() => handleDeletePart(part)} className="text-red-600 hover:text-red-900"><DeleteIcon/></button></td></tr>)) : (<tr><td colSpan="6" className="px-6 py-4 text-center text-gray-500">Chưa có linh kiện nào.</td></tr>)}</tbody></table></div>)}<PartFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSavePart} part={editingPart} /><ViewAndPrintModal isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)} title="In Tồn Kho"><InventoryContent parts={parts} /></ViewAndPrintModal><ViewAndPrintModal isOpen={isPriceListPrintModalOpen} onClose={() => setIsPriceListPrintModalOpen(false)} title="In Bảng Giá Linh Kiện"><PartPriceListContent parts={parts} /></ViewAndPrintModal><ConfirmModal isOpen={confirmState.isOpen} onClose={() => setConfirmState({isOpen: false, item: null})} onConfirm={confirmDelete} title="Xác nhận Xóa" message={`Bạn có chắc muốn xóa linh kiện "${confirmState.item?.partName}"?`} /></div> );
+            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Kho Linh kiện</h1><div className="flex gap-2"><button onClick={() => setIsPrintModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700"><PrintIcon />In Tồn Kho</button><button onClick={() => setIsPriceListPrintModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white font-semibold rounded-lg shadow-md hover:bg-cyan-700"><PrintIcon />In Bảng Giá</button>{isUserAdmin && <button onClick={openModalToAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Thêm Linh kiện</button>}</div></div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm linh kiện..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Linh kiện</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Vị trí</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tồn kho</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Nhập</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Bán</th>{isUserAdmin && <th className="relative px-6 py-3"></th>}</tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredParts.length > 0 ? filteredParts.map(part => (<tr key={part.id} className={part.stockQuantity <= part.lowStockThreshold ? 'bg-yellow-50' : ''}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">{part.partName}{part.stockQuantity <= part.lowStockThreshold && <WarningIcon/>}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{part.location}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.stockQuantity}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.importPrice.toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.salePrice.toLocaleString('vi-VN')} đ</td>{isUserAdmin && <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4"><button onClick={() => openModalToEdit(part)} className="text-indigo-600 hover:text-indigo-900"><EditIcon/></button><button onClick={() => handleDeletePart(part)} className="text-red-600 hover:text-red-900"><DeleteIcon/></button></td>}</tr>)) : (<tr><td colSpan={isUserAdmin ? 6 : 5} className="px-6 py-4 text-center text-gray-500">Chưa có linh kiện nào.</td></tr>)}</tbody></table></div>)}<PartFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSavePart} part={editingPart} /><ViewAndPrintModal isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)} title="In Tồn Kho"><InventoryContent parts={parts} /></ViewAndPrintModal><ViewAndPrintModal isOpen={isPriceListPrintModalOpen} onClose={() => setIsPriceListPrintModalOpen(false)} title="In Bảng Giá Linh Kiện"><PartPriceListContent parts={parts} /></ViewAndPrintModal><ConfirmModal isOpen={confirmState.isOpen} onClose={() => setConfirmState({isOpen: false, item: null})} onConfirm={confirmDelete} title="Xác nhận Xóa" message={`Bạn có chắc muốn xóa linh kiện "${confirmState.item?.partName}"?`} /></div> );
         };
-        const ServicesPage = ({ db, userId, showNotification }) => {
+        const ServicesPage = ({ db, userId, showNotification, userRole }) => {
             const [services, setServices] = React.useState([]); const [loading, setLoading] = React.useState(true); const [error, setError] = React.useState(null); const [isModalOpen, setIsModalOpen] = React.useState(false); const [editingService, setEditingService] = React.useState(null); const [isPriceListPrintModalOpen, setIsPriceListPrintModalOpen] = React.useState(false);
             const [confirmState, setConfirmState] = React.useState({ isOpen: false, item: null });
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
             const { collection, query, onSnapshot, addDoc, updateDoc, doc, deleteDoc } = window.firebaseFirestore;
+            const isUserAdmin = userRole === 'admin';
 
             React.useEffect(() => {
                 if (!userId || !db) { setLoading(false); return; } setLoading(true);
@@ -1077,7 +1081,7 @@
             const openModalToAdd = () => { setEditingService(null); setIsModalOpen(true); };
             const openModalToEdit = (service) => { setEditingService(service); setIsModalOpen(true); };
 
-            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Dịch vụ</h1><div className="flex gap-2"><button onClick={() => setIsPriceListPrintModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white font-semibold rounded-lg shadow-md hover:bg-cyan-700"><PrintIcon />In Bảng Giá</button><button onClick={openModalToAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Thêm Dịch vụ</button></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Dịch vụ</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tiền công</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{services.length > 0 ? services.map(service => (<tr key={service.id}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.serviceName}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{service.laborCost.toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4"><button onClick={() => openModalToEdit(service)} className="text-indigo-600 hover:text-indigo-900"><EditIcon/></button><button onClick={() => handleDeleteService(service)} className="text-red-600 hover:text-red-900"><DeleteIcon/></button></td></tr>)) : (<tr><td colSpan="3" className="px-6 py-4 text-center text-gray-500">Chưa có dịch vụ nào.</td></tr>)}</tbody></table></div>)}<ServiceFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveService} service={editingService} /><ViewAndPrintModal isOpen={isPriceListPrintModalOpen} onClose={() => setIsPriceListPrintModalOpen(false)} title="In Bảng Giá Dịch Vụ"><ServicePriceListContent services={services} /></ViewAndPrintModal><ConfirmModal isOpen={confirmState.isOpen} onClose={() => setConfirmState({isOpen: false, item: null})} onConfirm={confirmDelete} title="Xác nhận Xóa" message={`Bạn có chắc muốn xóa dịch vụ "${confirmState.item?.serviceName}"?`} /></div> );
+            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Dịch vụ</h1><div className="flex gap-2"><button onClick={() => setIsPriceListPrintModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white font-semibold rounded-lg shadow-md hover:bg-cyan-700"><PrintIcon />In Bảng Giá</button>{isUserAdmin && <button onClick={openModalToAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Thêm Dịch vụ</button>}</div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Dịch vụ</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tiền công</th>{isUserAdmin && <th className="relative px-6 py-3"></th>}</tr></thead><tbody className="bg-white divide-y divide-gray-200">{services.length > 0 ? services.map(service => (<tr key={service.id}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.serviceName}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{service.laborCost.toLocaleString('vi-VN')} đ</td>{isUserAdmin && <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4"><button onClick={() => openModalToEdit(service)} className="text-indigo-600 hover:text-indigo-900"><EditIcon/></button><button onClick={() => handleDeleteService(service)} className="text-red-600 hover:text-red-900"><DeleteIcon/></button></td>}</tr>)) : (<tr><td colSpan={isUserAdmin ? 3 : 2} className="px-6 py-4 text-center text-gray-500">Chưa có dịch vụ nào.</td></tr>)}</tbody></table></div>)}<ServiceFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveService} service={editingService} /><ViewAndPrintModal isOpen={isPriceListPrintModalOpen} onClose={() => setIsPriceListPrintModalOpen(false)} title="In Bảng Giá Dịch Vụ"><ServicePriceListContent services={services} /></ViewAndPrintModal><ConfirmModal isOpen={confirmState.isOpen} onClose={() => setConfirmState({isOpen: false, item: null})} onConfirm={confirmDelete} title="Xác nhận Xóa" message={`Bạn có chắc muốn xóa dịch vụ "${confirmState.item?.serviceName}"?`} /></div> );
         };
         const InvoicesPage = ({ db, userId }) => {
             const [invoices, setInvoices] = React.useState([]);
@@ -1177,7 +1181,7 @@
             if (loading) return <p className="p-8 text-center">Đang tải báo cáo...</p>
             return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Báo cáo & Thống kê</h1><div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"><div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Doanh thu (30 ngày)</h4><p className="text-3xl font-bold text-green-600">{stats.totalRevenue.toLocaleString('vi-VN')} đ</p></div><div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Phiếu đã sửa (30 ngày)</h4><p className="text-3xl font-bold text-blue-600">{stats.repairsCount}</p></div><div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Khách hàng mới (30 ngày)</h4><p className="text-3xl font-bold text-purple-600">{stats.newCustomers}</p></div></div><div className="grid grid-cols-1 lg:grid-cols-3 gap-6"><div className="lg:col-span-2 bg-white p-6 rounded-lg shadow"><h4 className="font-semibold text-lg mb-4">Doanh thu 30 ngày qua</h4><div className="h-80 flex gap-1 items-end">{revenueData.map(({ date, revenue }) => ( <div key={date} className="flex-1 flex flex-col items-center group"><div className="w-full h-full bg-blue-200 rounded-t-md hover:bg-blue-400 transition-colors" style={{ height: `${(revenue / maxRevenue) * 100}%` }}></div><span className="text-xs text-gray-500 mt-1">{date.split('/')[0]}</span><div className="hidden group-hover:block absolute bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-16 pointer-events-none">{revenue.toLocaleString('vi-VN')} đ</div></div> ))}</div></div><div className="bg-white p-6 rounded-lg shadow"><h4 className="font-semibold text-lg mb-4">Top Dịch vụ & Linh kiện</h4><ul className="space-y-3">{topServices.map(([name, count]) => ( <li key={name} className="flex justify-between items-center text-sm"><span className="text-gray-700">{name}</span><span className="font-bold bg-gray-200 rounded-full px-2 py-0.5">{count}</span></li> ))}</ul></div></div><div className="mt-6 bg-white p-6 rounded-lg shadow"><h4 className="font-semibold text-lg mb-4">Hóa đơn gần đây</h4><div className="overflow-x-auto"><table className="min-w-full"><thead className="text-left text-sm text-gray-500"><tr><th className="py-2">Ngày</th><th className="py-2">Khách hàng</th><th className="py-2 text-right">Tổng tiền</th></tr></thead><tbody>{recentInvoices.map(inv => (<tr key={inv.id} className="border-b"><td className="py-2 text-sm">{inv.createdAt?.toDate().toLocaleDateString('vi-VN')}</td><td className="py-2 text-sm">{inv.customerName}</td><td className="py-2 text-sm text-right font-medium">{inv.total.toLocaleString('vi-VN')} đ</td></tr>))}</tbody></table></div></div></div>);
         };
-        const Sidebar = ({ activePage, setActivePage, isOpen, setOpen }) => {
+        const Sidebar = ({ activePage, setActivePage, isOpen, setOpen, handleLogout }) => {
             const navItems = React.useMemo(() => [
                 { id: 'reports', label: 'Báo cáo', icon: <ReportIcon /> },
                 { id: 'repairs', label: 'Sửa chữa', icon: <RepairIcon /> }, 
@@ -1186,19 +1190,55 @@
                 { id: 'inventory', label: 'Kho Linh kiện', icon: <InventoryIcon /> }, 
                 { id: 'services', label: 'Dịch vụ', icon: <ServiceIcon /> },
             ], []);
-            return ( <> <div className={`fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setOpen(false)}></div> <div className={`fixed top-0 left-0 h-full w-64 bg-gray-800 text-white flex flex-col shadow-lg z-40 transform transition-transform lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}><div className="px-6 py-4 flex items-center gap-3 border-b border-gray-700"><RepairIcon /><h2 className="text-lg font-semibold">RepairShop Pro</h2></div><nav className="flex-1 px-4 py-4 space-y-2">{navItems.map(item => (<a key={item.id} href="#" onClick={(e) => { e.preventDefault(); setActivePage(item.id); setOpen(false); }} className={`flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activePage === item.id ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}>{item.icon}<span>{item.label}</span></a>))}</nav><div className="px-4 py-4 border-t border-gray-700"><a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"><SettingsIcon /><span>Cài đặt</span></a></div></div></> );
+            return ( <> <div className={`fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setOpen(false)}></div> <div className={`fixed top-0 left-0 h-full w-64 bg-gray-800 text-white flex flex-col shadow-lg z-40 transform transition-transform lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}><div className="px-6 py-4 flex items-center gap-3 border-b border-gray-700"><RepairIcon /><h2 className="text-lg font-semibold">RepairShop Pro</h2></div><nav className="flex-1 px-4 py-4 space-y-2">{navItems.map(item => (<a key={item.id} href="#" onClick={(e) => { e.preventDefault(); setActivePage(item.id); setOpen(false); }} className={`flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activePage === item.id ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}>{item.icon}<span>{item.label}</span></a>))}</nav><div className="px-4 py-4 border-t border-gray-700"><a href="#" onClick={handleLogout} className="flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"><LogoutIcon /><span>Đăng xuất</span></a></div></div></> );
         }
+
+        const LoginScreen = ({ onLogin, error }) => {
+            const [email, setEmail] = React.useState('');
+            const [password, setPassword] = React.useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onLogin(email, password);
+            };
+
+            return (
+                <div className="flex items-center justify-center min-h-screen bg-slate-100">
+                    <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+                        <div className="text-center">
+                            <h1 className="text-2xl font-bold text-gray-800">Đăng nhập</h1>
+                            <p className="text-gray-600">Vui lòng đăng nhập để tiếp tục</p>
+                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Email</label>
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputStyle} required />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Mật khẩu</label>
+                                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className={inputStyle} required />
+                            </div>
+                            {error && <p className="text-sm text-red-600">{error}</p>}
+                            <div>
+                                <button type="submit" className="w-full px-4 py-2 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">Đăng nhập</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
 
         function App() {
             const [activePage, setActivePage] = React.useState('reports');
-            const [firebase, setFirebase] = React.useState({ db: null, auth: null, userId: null, authReady: false, isConfigValid: false });
+            const [firebase, setFirebase] = React.useState({ db: null, auth: null, user: null, userRole: null, authReady: false, isConfigValid: false, authError: '' });
             const [isSidebarOpen, setSidebarOpen] = React.useState(false);
             const [notification, setNotification] = React.useState({ message: '', type: '' });
+            const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
 
             React.useEffect(() => {
                 const { initializeApp } = window.firebaseApp;
-                const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = window.firebaseAuth;
-                const { getFirestore } = window.firebaseFirestore;
+                const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } = window.firebaseAuth;
+                const { getFirestore, doc, getDoc } = window.firebaseFirestore;
 
                 const firebaseConfig = {
                     apiKey: "AIzaSyDhulXkeejEKhmdFYgEeXDGmhyb5tZYrwI",
@@ -1220,36 +1260,42 @@
                     const auth = getAuth(app);
                     const db = getFirestore(app);
 
-                    const unsubscribe = onAuthStateChanged(auth, (user) => {
-                        setFirebase(fb => ({ ...fb, userId: user ? user.uid : null, authReady: true, isConfigValid: true, db, auth }));
-                    });
-
-                    const performInitialSignIn = async () => {
-                        if (auth.currentUser) return;
-                        const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                        try {
-                            if (token) { 
-                                await signInWithCustomToken(auth, token); 
-                            } else { 
-                                await signInAnonymously(auth); 
-                            }
-                        } catch (error) {
-                            console.warn(`Sign-in with custom token failed (${error.code}). Falling back to anonymous sign-in.`);
-                            try { 
-                                await signInAnonymously(auth); 
-                            } catch (fallbackError) { 
-                                console.error("CRITICAL: Anonymous sign-in also failed:", fallbackError); 
-                            }
+                    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            const userDocRef = doc(db, `users`, user.uid);
+                            const userDocSnap = await getDoc(userDocRef);
+                            const userRole = userDocSnap.exists() ? userDocSnap.data().role : 'staff';
+                            setFirebase(fb => ({ ...fb, user, userRole, authReady: true, isConfigValid: true, db, auth, authError: '' }));
+                        } else {
+                            setFirebase(fb => ({ ...fb, user: null, userRole: null, authReady: true, isConfigValid: true, db, auth, authError: '' }));
                         }
-                    };
-
-                    performInitialSignIn();
+                    });
+                    
                     return () => unsubscribe();
                 } catch (e) {
                     console.error("Failed to initialize Firebase:", e);
                     setFirebase(fb => ({ ...fb, authReady: true, isConfigValid: false }));
                 }
             }, []);
+            
+            const handleLogin = async (email, password) => {
+                const { signInWithEmailAndPassword } = window.firebaseAuth;
+                try {
+                    await signInWithEmailAndPassword(firebase.auth, email, password);
+                } catch (error) {
+                    console.error("Login failed:", error.code);
+                    let message = "Đăng nhập thất bại. Vui lòng thử lại.";
+                    if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                        message = "Email hoặc mật khẩu không đúng.";
+                    }
+                    setFirebase(fb => ({...fb, authError: message}));
+                }
+            };
+
+            const handleLogout = async () => {
+                const { signOut } = window.firebaseAuth;
+                await signOut(firebase.auth);
+            };
             
             const showNotification = React.useCallback((message, type) => {
                 setNotification({ message, type });
@@ -1262,7 +1308,11 @@
                 if (!firebase.isConfigValid) {
                      return ( <div className="flex justify-center items-center h-screen w-screen bg-red-100 text-red-800 p-4"><div className="text-center"><h1 className="text-2xl font-bold">Lỗi Cấu hình Firebase</h1><p className="mt-2">Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra lại cấu hình Firebase của bạn.</p></div></div> );
                 }
-                const pageProps = { db: firebase.db, userId: firebase.userId, showNotification };
+                if (!firebase.user) {
+                    return <LoginScreen onLogin={handleLogin} error={firebase.authError} />;
+                }
+
+                const pageProps = { db: firebase.db, userId: firebase.user.uid, userRole: firebase.userRole, showNotification };
                 switch (activePage) {
                     case 'reports': return <ReportsPage {...pageProps} />;
                     case 'repairs': return <RepairOrdersPage {...pageProps} />;
@@ -1277,12 +1327,12 @@
             return (
                 <div className="min-h-screen bg-slate-100">
                     <Notification message={notification.message} type={notification.type} onDismiss={() => setNotification({ message: '', type: '' })} />
-                    <Sidebar activePage={activePage} setActivePage={setActivePage} isOpen={isSidebarOpen} setOpen={setSidebarOpen} />
-                    <main className="lg:ml-64">
-                         <div className="lg:hidden p-4 bg-white border-b flex justify-between items-center sticky top-0 z-20">
+                    {firebase.user && <Sidebar activePage={activePage} setActivePage={setActivePage} isOpen={isSidebarOpen} setOpen={setSidebarOpen} handleLogout={handleLogout} />}
+                    <main className={firebase.user ? "lg:ml-64" : ""}>
+                         {firebase.user && <div className="lg:hidden p-4 bg-white border-b flex justify-between items-center sticky top-0 z-20">
                             <h2 className="font-bold text-lg">RepairShop Pro</h2>
                             <button onClick={() => setSidebarOpen(true)}><MenuIcon /></button>
-                        </div>
+                        </div>}
                         {renderPage()}
                     </main>
                 </div>
