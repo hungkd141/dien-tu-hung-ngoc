@@ -272,7 +272,7 @@
                         <div className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
-                                <p className="text-sm">Địa chỉ: Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Nam Từ Liêm, Hà Nội </p>
+                                <p className="text-sm">Địa chỉ: Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Xuân Phương, Hà Nội </p>
                                 <p className="text-sm">Điện thoại: 094.632.8386</p>
                             </div>
                             <h2 className="text-xl font-bold text-center mb-6">PHIẾU NHẬN MÁY</h2>
@@ -352,7 +352,7 @@
                         <div className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
-                                <p className="text-sm">Địa chỉ: Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Nam Từ Liêm, Hà Nội </p>
+                                <p className="text-sm">Địa chỉ: Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Xuân Phương, Hà Nội </p>
                                 <p className="text-sm">Điện thoại: 094.632.8386</p>
                             </div>
                             <h2 className="text-xl font-bold text-center mb-6">PHIẾU BẢO HÀNH</h2>
@@ -363,7 +363,7 @@
                                 </div>
                                 <div className="text-right">
                                     <p><strong>Số HĐ:</strong> #{invoiceData.id.slice(0, 8).toUpperCase()}</p>
-                                    <p><strong>Ngày mua:</strong> {getFormattedDate(invoiceData.createdAt)}</p>
+                                    <p><strong>Ngày sửa:</strong> {getFormattedDate(invoiceData.createdAt)}</p>
                                     <p><strong>Bảo hành đến:</strong> {warrantyEndDate(invoiceData.createdAt)}</p>
                                 </div>
                             </div>
@@ -379,9 +379,9 @@
                             <div className="mt-6 text-xs text-gray-600">
                                 <p className="font-bold">Điều kiện bảo hành:</p>
                                 <ul className="list-disc list-inside space-y-1">
-                                    <li>Sản phẩm được bảo hành miễn phí trong thời hạn 01 tháng kể từ ngày mua.</li>
-                                    <li>Bảo hành cho các lỗi linh kiện và lỗi kỹ thuật thuộc về nhà sản xuất hoặc do quá trình sửa chữa.</li>
-                                    <li>Không bảo hành các trường hợp: rơi, vỡ, vào nước, thiên tai, hỏa hoạn, hoặc do người dùng sử dụng sai cách.</li>
+                                    <li>Sản phẩm được bảo hành miễn phí trong thời hạn 01 tháng kể từ ngày sửa.</li>
+                                    <li>Bảo hành cho các lỗi đã nhận sửa và toàn bộ linh kiện đã thay thế theo quy định của nhà cung cấp.</li>
+                                    <li>Không bảo hành các trường hợp: rơi, vỡ, vào nước, thiên tai, hỏa hoạn, bị sốc điện hoặc do người dùng sử dụng sai cách.</li>
                                     <li>Tem bảo hành phải còn nguyên vẹn.</li>
                                 </ul>
                             </div>
@@ -556,7 +556,7 @@
             const [loading, setLoading] = React.useState(true);
             const [error, setError] = React.useState(null);
             const [filterStatus, setFilterStatus] = React.useState('Tất cả');
-            const repairStatuses = React.useMemo(() => ["Mới nhận", "Đang kiểm tra", "Chờ báo giá", "Chờ linh kiện", "Đang sửa", "Sửa xong, chờ QC", "Sẵn sàng trả khách", "Đã trả khách"], []);
+            const repairStatuses = React.useMemo(() => ["Mới nhận", "Đang kiểm tra", "Chờ báo giá", "Chờ linh kiện", "Đang sửa", "Sửa xong, chờ QC", "Sẵn sàng trả khách", "Đã trả khách","Báo giá không sửa"], []);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
 
             React.useEffect(() => {
@@ -756,6 +756,7 @@
                                         <th className="px-4 py-2 text-right text-sm font-semibold">Số lượng Tồn</th>
                                         <th className="px-4 py-2 text-right text-sm font-semibold">Giá Nhập</th>
                                         <th className="px-4 py-2 text-right text-sm font-semibold">Giá Bán</th>
+                                         <th className="px-4 py-2 text-right text-sm font-semibold">Nhà cung cấp</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1158,7 +1159,7 @@
                         <div className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
-                                <p className="text-sm">Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Nam Từ Liêm, Hà Nội</p>
+                                <p className="text-sm">Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Xuân Phương, Hà Nội</p>
                                 <p className="text-sm">Điện thoại: 094.632.8386</p>
                             </div>
                             <h2 className="text-xl font-bold text-center mb-6">HÓA ĐƠN THANH TOÁN</h2>
@@ -1173,7 +1174,7 @@
                             <div className="text-right text-lg font-bold mb-8">Thành tiền: {(invoice.total || 0).toLocaleString('vi-VN')} đ</div>
                             <div className="text-center text-sm text-gray-600">
                                 <p>Cảm ơn quý khách và hẹn gặp lại! </p>
-                                <p>hóa đơn có giá trị kiêm phiếu bảo hành sản phẩm 01 tháng</p>
+                                <p>Hóa đơn có giá trị kiêm phiếu bảo hành sản phẩm 01 tháng</p>
                             </div>
                         </div>
                         <div className="p-4 border-t mt-auto flex justify-end items-center gap-4 no-print">
