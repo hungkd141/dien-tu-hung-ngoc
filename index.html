@@ -35,19 +35,25 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #64748b;
         }
+        
+        /* CẬP NHẬT QUY TẮC IN ĐỂ SỬA LỖI LẶP TRANG */
         @media print {
+            /* Ẩn tất cả các phần tử trên trang */
             body * {
                 visibility: hidden;
             }
-            #printable-area, #printable-area * {
+            /* Chỉ hiển thị khu vực được chỉ định để in và tất cả các phần tử con của nó */
+            .printable-area, .printable-area * {
                 visibility: visible;
             }
-            #printable-area {
+            /* Đặt khu vực in ở góc trên cùng bên trái của trang in */
+            .printable-area {
                 position: absolute;
                 left: 0;
                 top: 0;
                 width: 100%;
             }
+            /* Đảm bảo các nút và các phần tử không mong muốn khác bị ẩn đi */
             .no-print {
                 display: none !important;
             }
@@ -67,7 +73,7 @@
         const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
         const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
         const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" /></svg>;
-        const HistoryIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        const HistoryIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
         const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536l12.232-12.232z" /></svg>;
         const DeleteIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
         const WarningIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
@@ -77,6 +83,9 @@
         const PrintIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H7a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm7-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-2" /></svg>;
         const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>;
         const MenuIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
+        const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
+        const AuditLogIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
+
 
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
@@ -119,11 +128,31 @@
             if (!value) return 0;
             return parseFloat(String(value).replace(/\./g, '')) || 0;
         };
+        
+        const logAction = async (user, action, entity, details, entityId = '') => {
+            if (!db || !user) {
+                console.warn("logAction: DB or User not available.");
+                return;
+            }
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            try {
+                await db.collection(`artifacts/${appId}/public/data/audit_logs`).add({
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userEmail: user.email,
+                    action: action,
+                    entity: entity,
+                    entityId: entityId,
+                    details: details
+                });
+            } catch (error) {
+                console.error("Lỗi ghi nhật ký:", error);
+            }
+        };
 
 
         function exportToCSV(data, filename) {
             if (data.length === 0) {
-                alert("Không có dữ liệu để xuất.");
+                console.warn("Không có dữ liệu để xuất.");
                 return;
             }
             
@@ -157,6 +186,27 @@
         // --- UI COMPONENTS ---
         const inputStyle = "mt-1 block w-full rounded-md border-slate-300 bg-white py-2 px-3 shadow-sm placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 sm:text-sm";
         const formInputStyle = "mt-1 block w-full rounded-md border-2 border-sky-300 bg-white py-2 px-3 shadow-sm placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 sm:text-sm";
+        
+        const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                        <div className="p-6">
+                            <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                            <div className="mt-2">
+                                <p className="text-sm text-gray-600">{message}</p>
+                            </div>
+                        </div>
+                        <div className="bg-gray-50 px-6 py-3 flex justify-end gap-3">
+                            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Hủy</button>
+                            <button type="button" onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Xác nhận</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
         const NewOrderModal = ({ isOpen, onClose, onSave, orderToEdit }) => {
             const initialFormState = { customerName: '', customerPhone: '', customerAddress: '', deviceType: 'Điện thoại', deviceModel: '', deviceSerial: '', devicePassword: '', initialCondition: '', reportedProblem: '', isWarranty: false, originalInvoiceId: '', otherDeviceType: '', completionTime: '', diagnosis: '', repairPlan: '', estimatedCost: '' };
@@ -204,7 +254,7 @@
         };
         
         const PrintableReceiptModal = ({ isOpen, onClose, order }) => {
-            if (!isOpen || !order) return null;
+            if (!isOpen) return null;
 
             const handlePrint = () => {
                 window.print();
@@ -219,7 +269,7 @@
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
                     <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
-                        <div id="printable-area" className="p-8 text-gray-800 text-sm overflow-y-auto">
+                        <div className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
                                 <p className="text-sm">Địa chỉ: Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Nam Từ Liêm, Hà Nội </p>
@@ -299,7 +349,7 @@
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
                     <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
-                        <div id="printable-area" className="p-8 text-gray-800 text-sm overflow-y-auto">
+                        <div className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
                                 <p className="text-sm">Địa chỉ: Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Nam Từ Liêm, Hà Nội </p>
@@ -345,8 +395,157 @@
             );
         };
 
+        const InvoiceModal = ({ isOpen, onClose, order, onInvoiceSaved, user }) => {
+            const [items, setItems] = React.useState([]);
+            const [parts, setParts] = React.useState([]);
+            const [services, setServices] = React.useState([]);
+            const [paymentMethod, setPaymentMethod] = React.useState('Tiền mặt');
+            const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+
+            React.useEffect(() => {
+                if (isOpen) {
+                    // Fetch parts and services to populate dropdowns
+                    const fetchPartsAndServices = async () => {
+                        try {
+                            const partsSnapshot = await db.collection(`artifacts/${appId}/public/data/inventoryParts`).get();
+                            setParts(partsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+                            const servicesSnapshot = await db.collection(`artifacts/${appId}/public/data/services`).get();
+                            setServices(servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                        } catch(e) {
+                            console.error("Lỗi tải linh kiện/dịch vụ cho hóa đơn:", e);
+                        }
+                    };
+                    fetchPartsAndServices();
+                    // Pre-populate with repair plan if available
+                    if(order.repairPlan) {
+                        setItems([{ id: 'initial-item', name: order.repairPlan, quantity: 1, price: order.estimatedCost || 0 }]);
+                    } else {
+                        setItems([]);
+                    }
+                }
+            }, [isOpen, order, appId]);
+
+            const handleAddItem = () => {
+                setItems([...items, { id: `item-${Date.now()}`, name: '', quantity: 1, price: 0 }]);
+            };
+
+            const handleItemChange = (index, field, value) => {
+                const newItems = [...items];
+                newItems[index][field] = value;
+                if (field === 'name') {
+                     // Auto-populate price if item is selected from parts/services
+                     const selectedPart = parts.find(p => p.partName === value);
+                     const selectedService = services.find(s => s.serviceName === value);
+                     if (selectedPart) {
+                         newItems[index]['price'] = selectedPart.salePrice || 0;
+                     } else if (selectedService) {
+                         newItems[index]['price'] = selectedService.laborCost || 0;
+                     }
+                }
+                setItems(newItems);
+            };
+
+            const handleRemoveItem = (index) => {
+                const newItems = items.filter((_, i) => i !== index);
+                setItems(newItems);
+            };
+
+            const total = React.useMemo(() => {
+                return items.reduce((sum, item) => sum + (parseFormattedNumber(item.price) * item.quantity), 0);
+            }, [items]);
+
+            const handleSave = async () => {
+                if (!user || !db) return;
+                const invoiceData = {
+                    orderId: order.id,
+                    customerName: order.customerName,
+                    customerPhone: order.customerPhone,
+                    items: items.map(item => ({...item, price: parseFormattedNumber(item.price)})),
+                    total: total,
+                    paymentMethod: paymentMethod,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                };
+
+                try {
+                    const invoiceRef = await db.collection(`artifacts/${appId}/public/data/invoices`).add(invoiceData);
+                    await db.collection(`artifacts/${appId}/public/data/repairOrders`).doc(order.id).update({ status: 'Đã trả khách' });
+                    await logAction(user, 'create', 'Hóa đơn', `Tạo hóa đơn #${invoiceRef.id.slice(0,6)} cho phiếu #${order.id.slice(0,6)}.`, invoiceRef.id);
+                    onInvoiceSaved({ ...invoiceData, id: invoiceRef.id, createdAt: new Date() }, order);
+                } catch (e) {
+                    console.error("Lỗi khi lưu hóa đơn:", e);
+                    alert("Lỗi khi lưu hóa đơn.");
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                        <div className="flex justify-between items-center p-4 border-b">
+                            <h2 className="text-xl font-bold text-gray-800">Tạo Hóa đơn cho Phiếu #{order.id.slice(0,6)}</h2>
+                            <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><CloseIcon /></button>
+                        </div>
+                        <div className="p-6 space-y-4 overflow-y-auto">
+                            {items.map((item, index) => (
+                                <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
+                                    <input
+                                        list="item-suggestions"
+                                        type="text"
+                                        placeholder="Tên mục (linh kiện/dịch vụ)"
+                                        value={item.name}
+                                        onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                                        className={formInputStyle + " col-span-6"}
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="SL"
+                                        value={item.quantity}
+                                        onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value, 10))}
+                                        className={formInputStyle + " col-span-2"}
+                                        min="1"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Đơn giá"
+                                        value={formatNumber(item.price)}
+                                        onChange={(e) => handleItemChange(index, 'price', e.target.value)}
+                                        className={formInputStyle + " col-span-3"}
+                                    />
+                                    <button onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 col-span-1"><DeleteIcon /></button>
+                                </div>
+                            ))}
+                             <datalist id="item-suggestions">
+                                {services.map(s => <option key={s.id} value={s.serviceName} />)}
+                                {parts.map(p => <option key={p.id} value={p.partName} />)}
+                            </datalist>
+                            <button onClick={handleAddItem} className="text-sm text-blue-600 hover:underline">+ Thêm mục</button>
+                            <div className="border-t pt-4 mt-4 space-y-2">
+                                <div className="flex justify-between">
+                                    <span className="font-semibold">Tổng cộng:</span>
+                                    <span className="font-bold text-lg">{formatNumber(total)} đ</span>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-600">Phương thức thanh toán</label>
+                                    <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className={formInputStyle}>
+                                        <option>Tiền mặt</option>
+                                        <option>Chuyển khoản</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-end p-4 border-t space-x-2">
+                            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Hủy</button>
+                            <button type="button" onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Lưu & In Hóa đơn</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // --- PAGES ---
-        const RepairOrdersPage = ({ userId }) => {
+        const RepairOrdersPage = ({ user, userRole }) => {
             const [orders, setOrders] = React.useState([]);
             const [isModalOpen, setIsModalOpen] = React.useState(false);
             const [editingOrder, setEditingOrder] = React.useState(null);
@@ -361,15 +560,15 @@
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
 
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; }
+                if (!user || !db) { setLoading(false); return; }
                 setLoading(true);
                 const q = db.collection(`artifacts/${appId}/public/data/repairOrders`).orderBy("createdAt", "desc");
                 const unsubscribe = q.onSnapshot((snapshot) => { setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi: ", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
                 return () => unsubscribe();
-            }, [userId, appId]);
+            }, [user, appId]);
             
             const handleSaveOrder = React.useCallback(async (orderData) => {
-                if (!userId || !db) return;
+                if (!user || !db) return;
                 const { id, ...dataToSave } = orderData;
                 
                 if (dataToSave.deviceType === 'Khác') {
@@ -380,21 +579,31 @@
                 try {
                     if (id) {
                         await db.collection(`artifacts/${appId}/public/data/repairOrders`).doc(id).update(dataToSave);
+                        await logAction(user, 'update', 'Phiếu Sửa Chữa', `Cập nhật phiếu #${id.slice(0,6)} cho khách hàng ${dataToSave.customerName}.`, id);
                     } else {
-                        const orderRef = await db.collection(`artifacts/${appId}/public/data/repairOrders`).add({ ...dataToSave, status: 'Mới nhận', createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: userId });
+                        const orderRef = await db.collection(`artifacts/${appId}/public/data/repairOrders`).add({ ...dataToSave, status: 'Mới nhận', createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: user.uid });
                         await orderRef.update({ orderId: orderRef.id });
                         setReceiptToPrint({ ...dataToSave, id: orderRef.id, createdAt: new Date() });
+                        await logAction(user, 'create', 'Phiếu Sửa Chữa', `Tạo mới phiếu cho khách hàng ${dataToSave.customerName}.`, orderRef.id);
                     }
                     const customerDocRef = db.collection(`artifacts/${appId}/public/data/customers`).doc(dataToSave.customerPhone);
                     await customerDocRef.set({ customerName: dataToSave.customerName, customerPhone: dataToSave.customerPhone, customerAddress: dataToSave.customerAddress, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
 
                 } catch (e) { console.error("Lỗi: ", e); alert("Lỗi khi lưu."); }
-            }, [userId, appId]);
+            }, [user, appId]);
             
             const handleStatusChange = React.useCallback(async (orderId, newStatus) => {
-                if (!userId || !db) return;
-                try { await db.collection(`artifacts/${appId}/public/data/repairOrders`).doc(orderId).update({ status: newStatus }); } catch(e) { console.error("Lỗi:", e); alert("Lỗi cập nhật."); }
-            }, [userId, appId]);
+                if (!user || !db) return;
+                const docRef = db.collection(`artifacts/${appId}/public/data/repairOrders`).doc(orderId);
+                try {
+                    const oldDoc = await docRef.get();
+                    if (oldDoc.exists) {
+                        const oldStatus = oldDoc.data().status;
+                        await docRef.update({ status: newStatus });
+                        await logAction(user, 'status_change', 'Phiếu Sửa Chữa', `Đổi trạng thái phiếu #${orderId.slice(0,6)} từ '${oldStatus}' sang '${newStatus}'.`, orderId);
+                    }
+                } catch(e) { console.error("Lỗi:", e); alert("Lỗi cập nhật."); }
+            }, [user, appId]);
 
             const handleOpenInvoiceModal = (order) => { setSelectedOrderForInvoice(order); setIsInvoiceModalOpen(true); }
             const handleOpenEditModal = (order) => { setEditingOrder(order); setIsModalOpen(true); }
@@ -414,11 +623,25 @@
 
             return (
                 <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full">
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Sửa chữa</h1><div className="flex gap-2"><button onClick={() => exportToCSV(orders.map(o => ({'MaPhieu': o.id, 'TenKhachHang': o.customerName, 'SoDienThoai': o.customerPhone, 'LoaiThietBi': o.deviceType, 'Model': o.deviceModel, 'TrangThai': o.status, 'NgayNhan': o.createdAt?.toDate().toLocaleDateString('vi-VN')})), 'danh-sach-sua-chua.csv')} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700"><DownloadIcon />Xuất File</button><button onClick={handleOpenCreateModal} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Tạo Phiếu Mới</button></div></div>
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Sửa chữa</h1>
+                    {userRole === 'admin' && (
+                        <div className="flex gap-2">
+                            <button onClick={() => exportToCSV(orders.map(o => ({'MaPhieu': o.id, 'TenKhachHang': o.customerName, 'SoDienThoai': o.customerPhone, 'LoaiThietBi': o.deviceType, 'Model': o.deviceModel, 'TrangThai': o.status, 'NgayNhan': o.createdAt?.toDate().toLocaleDateString('vi-VN')})), 'danh-sach-sua-chua.csv')} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700"><DownloadIcon />Xuất File</button>
+                            <button onClick={handleOpenCreateModal} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Tạo Phiếu Mới</button>
+                        </div>
+                    )}
+                    </div>
                     <div className="mb-4"><label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo trạng thái:</label><select id="statusFilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={inputStyle + ' max-w-xs'}><option>Tất cả</option>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select></div>
-                    {loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã Phiếu</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách Hàng</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thiết Bị</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vấn Đề</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày Nhận</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá Dự Kiến</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th><th scope="col" className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredOrders.length > 0 ? filteredOrders.map(order => (<tr key={order.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-600">#{order.id.slice(0,6)}</td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{order.customerName}</div><div className="text-sm text-gray-500">{order.customerPhone}</div></td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{order.deviceModel}</div><div className="text-sm text-gray-500">{order.deviceType}</div></td><td className="px-6 py-4 max-w-xs whitespace-normal"><p className="text-sm text-gray-900 truncate">{order.reportedProblem}</p></td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.estimatedCost ? order.estimatedCost.toLocaleString('vi-VN') + ' đ' : ''}</td><td className="px-6 py-4 whitespace-nowrap"><div className="flex items-center gap-2"><select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)} className={`text-xs font-semibold rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-offset-1 ${getStatusColor(order.status)}`} style={{appearance: 'none', WebkitAppearance: 'none'}}>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>{order.isWarranty && <span title="Phiếu bảo hành" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800"><WarrantyIcon/></span>}</div></td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2"><button onClick={() => setReceiptToPrint(order)} className="text-gray-500 hover:text-gray-800" title="In Phiếu hẹn"><PrintIcon /></button><button onClick={() => handleOpenEditModal(order)} className="text-indigo-600 hover:text-indigo-900"><EditIcon /></button>{order.status === 'Sẵn sàng trả khách' && (<button onClick={() => handleOpenInvoiceModal(order)} className="text-green-600 hover:text-green-900">Tạo Hóa đơn</button>)}</td></tr>)) : (<tr><td colSpan="8" className="px-6 py-4 text-center text-gray-500">Không có phiếu sửa chữa nào.</td></tr>)}</tbody></table></div>)}
-                    <NewOrderModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveOrder} orderToEdit={editingOrder} />
-                    {selectedOrderForInvoice && <InvoiceModal isOpen={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} order={selectedOrderForInvoice} onInvoiceSaved={handleInvoiceSaved} />}
+                    {loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã Phiếu</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách Hàng</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thiết Bị</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vấn Đề</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày Nhận</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá Dự Kiến</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th><th scope="col" className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredOrders.length > 0 ? filteredOrders.map(order => (<tr key={order.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-600">#{order.id.slice(0,6)}</td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{order.customerName}</div><div className="text-sm text-gray-500">{order.customerPhone}</div></td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{order.deviceModel}</div><div className="text-sm text-gray-500">{order.deviceType}</div></td><td className="px-6 py-4 max-w-xs whitespace-normal"><p className="text-sm text-gray-900 truncate">{order.reportedProblem}</p></td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{(order.estimatedCost || 0).toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap"><div className="flex items-center gap-2"><select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)} className={`text-xs font-semibold rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-offset-1 ${getStatusColor(order.status)}`} style={{appearance: 'none', WebkitAppearance: 'none'}}>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>{order.isWarranty && <span title="Phiếu bảo hành" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800"><WarrantyIcon/></span>}</div></td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2"><button onClick={() => setReceiptToPrint(order)} className="text-gray-500 hover:text-gray-800" title="In Phiếu hẹn"><PrintIcon /></button>
+                    {userRole === 'admin' && (
+                        <>
+                            <button onClick={() => handleOpenEditModal(order)} className="text-indigo-600 hover:text-indigo-900"><EditIcon /></button>
+                            {order.status === 'Sẵn sàng trả khách' && (<button onClick={() => handleOpenInvoiceModal(order)} className="text-green-600 hover:text-green-900">Tạo Hóa đơn</button>)}
+                        </>
+                    )}
+                    </td></tr>)) : (<tr><td colSpan="8" className="px-6 py-4 text-center text-gray-500">Không có phiếu sửa chữa nào.</td></tr>)}</tbody></table></div>)}
+                    {userRole === 'admin' && <NewOrderModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveOrder} orderToEdit={editingOrder} />}
+                    {selectedOrderForInvoice && <InvoiceModal isOpen={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} order={selectedOrderForInvoice} onInvoiceSaved={handleInvoiceSaved} user={user} />}
                     {receiptToPrint && <PrintableReceiptModal isOpen={!!receiptToPrint} onClose={() => setReceiptToPrint(null)} order={{...receiptToPrint, createdAt: receiptToPrint.createdAt?.toDate ? receiptToPrint.createdAt.toDate() : new Date()}} />}
                     {warrantyData && <PrintableWarrantyModal isOpen={!!warrantyData} onClose={() => setWarrantyData(null)} invoiceData={warrantyData} orderDetails={orders.find(o => o.id === warrantyData.orderId)} />}
                 </div>
@@ -450,18 +673,22 @@
             return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"><div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"><div className="flex justify-between items-center p-4 border-b"><h2 className="text-xl font-bold text-gray-800">Lịch sử sửa chữa: {customer.customerName}</h2><button onClick={onClose} className="text-gray-500 hover:text-gray-800"><CloseIcon /></button></div><div className="p-6 overflow-y-auto">{loading ? <p>Đang tải...</p> : ( orders.length > 0 ? ( <ul className="space-y-4">{orders.map(order => ( <li key={order.id} className="p-4 border rounded-md bg-gray-50"><p><strong>Ngày nhận:</strong> {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</p><p><strong>Thiết bị:</strong> {order.deviceType} - {order.deviceModel} ({order.deviceSerial})</p><p><strong>Vấn đề:</strong> {order.reportedProblem}</p><p><strong>Trạng thái:</strong> {order.status}</p></li> ))}</ul> ) : <p>Không có lịch sử.</p> )}</div></div></div> );
         };
 
-        const CustomersPage = ({ userId }) => {
+        const CustomersPage = ({ user, userRole }) => {
             const [customers, setCustomers] = React.useState([]); const [loading, setLoading] = React.useState(true); const [error, setError] = React.useState(null); const [searchTerm, setSearchTerm] = React.useState(""); const [selectedCustomer, setSelectedCustomer] = React.useState(null); const [isHistoryModalOpen, setIsHistoryModalOpen] = React.useState(false);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; } setLoading(true);
+                if (!user || !db) { setLoading(false); return; } setLoading(true);
                 const q = db.collection(`artifacts/${appId}/public/data/customers`).orderBy("lastSeen", "desc");
                 const unsubscribe = q.onSnapshot((snapshot) => { setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
                 return () => unsubscribe();
-            }, [userId, appId]);
+            }, [user, appId]);
             const handleViewHistory = (customer) => { setSelectedCustomer(customer); setIsHistoryModalOpen(true); };
             const filteredCustomers = React.useMemo(() => customers.filter(c => c.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) || c.customerPhone?.includes(searchTerm)), [customers, searchTerm]);
-            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Khách hàng</h1><button onClick={() => exportToCSV(customers.map(c => ({'TenKhachHang': c.customerName, 'SoDienThoai': c.customerPhone, 'DiaChi': c.customerAddress})), 'danh-sach-khach-hang.csv')} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700"><DownloadIcon />Xuất File</button></div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm khách hàng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SĐT</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa Chỉ</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lần cuối ghé</th><th scope="col" className="relative px-6 py-3"><span className="sr-only">Hành động</span></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredCustomers.length > 0 ? filteredCustomers.map(customer => (<tr key={customer.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{customer.customerName}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerPhone}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerAddress || 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.lastSeen?.toDate ? customer.lastSeen.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button onClick={() => handleViewHistory(customer)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center gap-1"><HistoryIcon /> Xem Lịch sử</button></td></tr>)) : (<tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Không tìm thấy khách hàng.</td></tr>)}</tbody></table></div>)}<CustomerHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} customer={selectedCustomer} /></div> );
+            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Khách hàng</h1>
+            {userRole === 'admin' && (
+                <button onClick={() => exportToCSV(customers.map(c => ({'TenKhachHang': c.customerName, 'SoDienThoai': c.customerPhone, 'DiaChi': c.customerAddress})), 'danh-sach-khach-hang.csv')} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700"><DownloadIcon />Xuất File</button>
+            )}
+            </div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm khách hàng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SĐT</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa Chỉ</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lần cuối ghé</th><th scope="col" className="relative px-6 py-3"><span className="sr-only">Hành động</span></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredCustomers.length > 0 ? filteredCustomers.map(customer => (<tr key={customer.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{customer.customerName}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerPhone}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerAddress || 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.lastSeen?.toDate ? customer.lastSeen.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button onClick={() => handleViewHistory(customer)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center gap-1"><HistoryIcon /> Xem Lịch sử</button></td></tr>)) : (<tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Không tìm thấy khách hàng.</td></tr>)}</tbody></table></div>)}<CustomerHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} customer={selectedCustomer} /></div> );
         };
 
         const PartFormModal = ({ isOpen, onClose, onSave, part }) => {
@@ -514,7 +741,7 @@
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
                     <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
-                        <div id="printable-area" className="p-8 text-gray-800 text-sm overflow-y-auto">
+                        <div className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
                                 <p className="text-sm">Ngày in: {new Date().toLocaleDateString('vi-VN')}</p>
@@ -537,9 +764,9 @@
                                             <td className="px-4 py-2">{index + 1}</td>
                                             <td className="px-4 py-2">{part.partName}</td>
                                             <td className="px-4 py-2">{part.location || ''}</td>
-                                            <td className="px-4 py-2 text-right">{part.stockQuantity}</td>
-                                            <td className="px-4 py-2 text-right">{part.importPrice.toLocaleString('vi-VN')} đ</td>
-                                            <td className="px-4 py-2 text-right">{part.salePrice.toLocaleString('vi-VN')} đ</td>
+                                            <td className="px-4 py-2 text-right">{(part.stockQuantity || 0).toLocaleString('vi-VN')}</td>
+                                            <td className="px-4 py-2 text-right">{(part.importPrice || 0).toLocaleString('vi-VN')} đ</td>
+                                            <td className="px-4 py-2 text-right">{(part.salePrice || 0).toLocaleString('vi-VN')} đ</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -554,38 +781,74 @@
             );
         };
 
-        const InventoryPage = ({ userId }) => {
+        const InventoryPage = ({ user, userRole }) => {
             const [parts, setParts] = React.useState([]); const [loading, setLoading] = React.useState(true); const [error, setError] = React.useState(null); const [searchTerm, setSearchTerm] = React.useState(""); const [isModalOpen, setIsModalOpen] = React.useState(false); const [editingPart, setEditingPart] = React.useState(null);
             const [isPrintModalOpen, setIsPrintModalOpen] = React.useState(false);
+            const [confirmDelete, setConfirmDelete] = React.useState(null);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+            
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; } setLoading(true);
+                if (!user || !db) { setLoading(false); return; } setLoading(true);
                 const q = db.collection(`artifacts/${appId}/public/data/inventoryParts`).orderBy("partName");
                 const unsubscribe = q.onSnapshot((snapshot) => { setParts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
                 return () => unsubscribe();
-            }, [userId, appId]);
+            }, [user, appId]);
 
             const handleSavePart = React.useCallback(async (partData) => {
-                if (!userId || !db) return;
+                if (!user || !db) return;
                 const { id, ...dataToSave } = partData;
                 try {
-                    if (id) { await db.collection(`artifacts/${appId}/public/data/inventoryParts`).doc(id).update(dataToSave); } 
-                    else { await db.collection(`artifacts/${appId}/public/data/inventoryParts`).add(dataToSave); }
-                } catch (e) { console.error("Lỗi:", e); alert("Lỗi khi lưu."); }
-            }, [userId, appId]);
+                    if (id) { 
+                        await db.collection(`artifacts/${appId}/public/data/inventoryParts`).doc(id).update(dataToSave); 
+                        await logAction(user, 'update', 'Linh kiện', `Cập nhật linh kiện '${dataToSave.partName}'.`, id);
+                    } else { 
+                        const newRef = await db.collection(`artifacts/${appId}/public/data/inventoryParts`).add(dataToSave); 
+                        await logAction(user, 'create', 'Linh kiện', `Tạo mới linh kiện '${dataToSave.partName}'.`, newRef.id);
+                    }
+                } catch (e) { console.error("Lỗi:", e); }
+            }, [user, appId]);
             
             const handleDeletePart = React.useCallback(async (partId) => {
-                if (!userId || !db || !window.confirm("Bạn có chắc muốn xóa linh kiện này?")) return;
-                try { await db.collection(`artifacts/${appId}/public/data/inventoryParts`).doc(partId).delete(); } 
-                catch (e) { console.error("Lỗi:", e); alert("Lỗi khi xóa."); }
-            }, [userId, appId]);
+                if (!user || !db || !partId) return;
+                const docRef = db.collection(`artifacts/${appId}/public/data/inventoryParts`).doc(partId);
+                try { 
+                    const doc = await docRef.get();
+                    if(doc.exists) {
+                        const partName = doc.data().partName;
+                        await docRef.delete(); 
+                        await logAction(user, 'delete', 'Linh kiện', `Xóa linh kiện '${partName}'.`, partId);
+                    }
+                    setConfirmDelete(null);
+                } 
+                catch (e) { console.error("Lỗi:", e); }
+            }, [user, appId]);
             
             const openModalToAdd = () => { setEditingPart(null); setIsModalOpen(true); };
             const openModalToEdit = (part) => { setEditingPart(part); setIsModalOpen(true); };
 
             const filteredParts = React.useMemo(() => parts.filter(p => p.partName?.toLowerCase().includes(searchTerm.toLowerCase())), [parts, searchTerm]);
 
-            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Kho Linh kiện</h1><div className="flex gap-2"><button onClick={() => setIsPrintModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700"><PrintIcon />In Tồn Kho</button><button onClick={openModalToAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Thêm Linh kiện</button></div></div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm linh kiện..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Linh kiện</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Vị trí</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tồn kho</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Nhập</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Bán</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredParts.length > 0 ? filteredParts.map(part => (<tr key={part.id} className={part.stockQuantity <= part.lowStockThreshold ? 'bg-yellow-50' : ''}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">{part.partName}{part.stockQuantity <= part.lowStockThreshold && <WarningIcon/>}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{part.location}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.stockQuantity}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.importPrice.toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-sm">{part.salePrice.toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4"><button onClick={() => openModalToEdit(part)} className="text-indigo-600 hover:text-indigo-900"><EditIcon/></button><button onClick={() => handleDeletePart(part.id)} className="text-red-600 hover:text-red-900"><DeleteIcon/></button></td></tr>)) : (<tr><td colSpan="6" className="px-6 py-4 text-center text-gray-500">Chưa có linh kiện nào.</td></tr>)}</tbody></table></div>)}<PartFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSavePart} part={editingPart} /><PrintableInventoryModal isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)} parts={parts} /></div> );
+            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Kho Linh kiện</h1>
+            {userRole === 'admin' && (
+                <div className="flex gap-2">
+                    <button onClick={() => setIsPrintModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700"><PrintIcon />In Tồn Kho</button>
+                    <button onClick={openModalToAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Thêm Linh kiện</button>
+                </div>
+            )}
+            </div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm linh kiện..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Linh kiện</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Vị trí</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tồn kho</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Nhập</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Bán</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredParts.length > 0 ? filteredParts.map(part => (<tr key={part.id} className={part.stockQuantity <= part.lowStockThreshold ? 'bg-yellow-50' : ''}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">{part.partName}{part.stockQuantity <= part.lowStockThreshold && <WarningIcon/>}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{part.location}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(part.stockQuantity || 0).toLocaleString('vi-VN')}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(part.importPrice || 0).toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(part.salePrice || 0).toLocaleString('vi-VN')} đ</td>
+            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                {userRole === 'admin' && (
+                    <>
+                        <button onClick={() => openModalToEdit(part)} className="text-indigo-600 hover:text-indigo-900"><EditIcon/></button>
+                        <button onClick={() => setConfirmDelete(part.id)} className="text-red-600 hover:text-red-900"><DeleteIcon/></button>
+                    </>
+                )}
+            </td>
+            </tr>)) : (<tr><td colSpan="6" className="px-6 py-4 text-center text-gray-500">Chưa có linh kiện nào.</td></tr>)}</tbody></table></div>)}
+            {userRole === 'admin' && <PartFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSavePart} part={editingPart} />}
+            <PrintableInventoryModal isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)} parts={parts} />
+            <ConfirmModal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={() => handleDeletePart(confirmDelete)} title="Xác nhận Xóa" message="Bạn có chắc chắn muốn xóa linh kiện này không? Hành động này không thể hoàn tác." />
+            </div> );
         };
 
         const ServiceFormModal = ({ isOpen, onClose, onSave, service }) => {
@@ -612,41 +875,73 @@
             return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"><div className="bg-white rounded-lg shadow-2xl w-full max-w-lg"><div className="flex justify-between items-center p-4 border-b"><h2 className="text-xl font-bold text-gray-800">{service ? 'Chỉnh sửa Dịch vụ' : 'Thêm Dịch vụ mới'}</h2><button onClick={onClose} className="text-gray-500 hover:text-gray-800"><CloseIcon /></button></div><form onSubmit={handleSubmit} className="p-6 space-y-4"><div><label className="block text-sm font-medium text-gray-600">Tên Dịch vụ</label><input type="text" name="serviceName" value={formData.serviceName} onChange={handleChange} className={formInputStyle} required /></div><div><label className="block text-sm font-medium text-gray-600">Tiền công</label><input type="text" name="laborCost" value={formData.laborCost} onChange={handleChange} className={formInputStyle} placeholder="0" required /></div><div className="flex justify-end pt-4 space-x-2"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Hủy</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Lưu</button></div></form></div></div> );
         };
 
-        const ServicesPage = ({ userId }) => {
+        const ServicesPage = ({ user, userRole }) => {
             const [services, setServices] = React.useState([]); const [loading, setLoading] = React.useState(true); const [error, setError] = React.useState(null); const [isModalOpen, setIsModalOpen] = React.useState(false); const [editingService, setEditingService] = React.useState(null);
+            const [confirmDelete, setConfirmDelete] = React.useState(null);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+            
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; } setLoading(true);
+                if (!user || !db) { setLoading(false); return; } setLoading(true);
                 const q = db.collection(`artifacts/${appId}/public/data/services`).orderBy("serviceName");
                 const unsubscribe = q.onSnapshot((snapshot) => { setServices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
                 return () => unsubscribe();
-            }, [userId, appId]);
+            }, [user, appId]);
 
             const handleSaveService = React.useCallback(async (serviceData) => {
-                if (!userId || !db) return;
+                if (!user || !db) return;
                 const { id, ...dataToSave } = serviceData;
                 try {
-                    if (id) { await db.collection(`artifacts/${appId}/public/data/services`).doc(id).update(dataToSave); } 
-                    else { await db.collection(`artifacts/${appId}/public/data/services`).add(dataToSave); }
-                } catch (e) { console.error("Lỗi:", e); alert("Lỗi khi lưu."); }
-            }, [userId, appId]);
+                    if (id) { 
+                        await db.collection(`artifacts/${appId}/public/data/services`).doc(id).update(dataToSave); 
+                        await logAction(user, 'update', 'Dịch vụ', `Cập nhật dịch vụ '${dataToSave.serviceName}'.`, id);
+                    } else { 
+                        const newRef = await db.collection(`artifacts/${appId}/public/data/services`).add(dataToSave); 
+                        await logAction(user, 'create', 'Dịch vụ', `Tạo mới dịch vụ '${dataToSave.serviceName}'.`, newRef.id);
+                    }
+                } catch (e) { console.error("Lỗi:", e); }
+            }, [user, appId]);
             
             const handleDeleteService = React.useCallback(async (serviceId) => {
-                if (!userId || !db || !window.confirm("Bạn có chắc muốn xóa dịch vụ này?")) return;
-                try { await db.collection(`artifacts/${appId}/public/data/services`).doc(serviceId).delete(); } 
-                catch (e) { console.error("Lỗi:", e); alert("Lỗi khi xóa."); }
-            }, [userId, appId]);
+                if (!user || !db || !serviceId) return;
+                const docRef = db.collection(`artifacts/${appId}/public/data/services`).doc(serviceId);
+                try { 
+                    const doc = await docRef.get();
+                    if(doc.exists) {
+                        const serviceName = doc.data().serviceName;
+                        await docRef.delete(); 
+                        await logAction(user, 'delete', 'Dịch vụ', `Xóa dịch vụ '${serviceName}'.`, serviceId);
+                    }
+                    setConfirmDelete(null);
+                } 
+                catch (e) { console.error("Lỗi:", e); }
+            }, [user, appId]);
             
             const openModalToAdd = () => { setEditingService(null); setIsModalOpen(true); };
             const openModalToEdit = (service) => { setEditingService(service); setIsModalOpen(true); };
 
-            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Dịch vụ</h1><button onClick={openModalToAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Thêm Dịch vụ</button></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Dịch vụ</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tiền công</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{services.length > 0 ? services.map(service => (<tr key={service.id}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.serviceName}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{service.laborCost.toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4"><button onClick={() => openModalToEdit(service)} className="text-indigo-600 hover:text-indigo-900"><EditIcon/></button><button onClick={() => handleDeleteService(service.id)} className="text-red-600 hover:text-red-900"><DeleteIcon/></button></td></tr>)) : (<tr><td colSpan="3" className="px-6 py-4 text-center text-gray-500">Chưa có dịch vụ nào.</td></tr>)}</tbody></table></div>)}<ServiceFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveService} service={editingService} /></div> );
+            return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Dịch vụ</h1>
+            {userRole === 'admin' && (
+                <button onClick={openModalToAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700"><PlusIcon />Thêm Dịch vụ</button>
+            )}
+            </div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Dịch vụ</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tiền công</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{services.length > 0 ? services.map(service => (<tr key={service.id}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.serviceName}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(service.laborCost || 0).toLocaleString('vi-VN')} đ</td>
+            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                {userRole === 'admin' && (
+                    <>
+                        <button onClick={() => openModalToEdit(service)} className="text-indigo-600 hover:text-indigo-900"><EditIcon/></button>
+                        <button onClick={() => setConfirmDelete(service.id)} className="text-red-600 hover:text-red-900"><DeleteIcon/></button>
+                    </>
+                )}
+            </td>
+            </tr>)) : (<tr><td colSpan="3" className="px-6 py-4 text-center text-gray-500">Chưa có dịch vụ nào.</td></tr>)}</tbody></table></div>)}
+            {userRole === 'admin' && <ServiceFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveService} service={editingService} />}
+            <ConfirmModal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={() => handleDeleteService(confirmDelete)} title="Xác nhận Xóa" message="Bạn có chắc chắn muốn xóa dịch vụ này không? Hành động này không thể hoàn tác." />
+            </div> );
         };
 
         const PlaceholderComponent = ({ title }) => (<div className="p-8 flex justify-center items-center h-full bg-slate-100"><div className="text-center"><h1 className="text-4xl font-bold text-gray-800">{title}</h1><p className="mt-2 text-gray-500">Module đang trong quá trình phát triển.</p><div className="mt-6"><div className="bg-gray-200 h-40 w-full max-w-md mx-auto rounded-lg animate-pulse"></div></div></div></div>);
 
         // --- APP SHELL & ROUTING ---
-        const Sidebar = ({ activePage, setActivePage, isOpen, setOpen }) => {
+        const Sidebar = ({ activePage, setActivePage, isOpen, setOpen, user, onLogout, userRole }) => {
             const navItems = React.useMemo(() => [
                 { id: 'reports', label: 'Báo cáo', icon: <ReportIcon /> },
                 { id: 'repairs', label: 'Sửa chữa', icon: <RepairIcon /> }, 
@@ -654,20 +949,28 @@
                 { id: 'customers', label: 'Khách hàng', icon: <CustomerIcon /> }, 
                 { id: 'inventory', label: 'Kho Linh kiện', icon: <InventoryIcon /> }, 
                 { id: 'services', label: 'Dịch vụ', icon: <ServiceIcon /> },
-            ], []);
+                // Add Audit Log only for admins
+                ...(userRole === 'admin' ? [{ id: 'history', label: 'Nhật ký Hoạt động', icon: <AuditLogIcon /> }] : [])
+            ], [userRole]);
             return ( 
                 <>
                     <div className={`fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setOpen(false)}></div>
                     <div className={`fixed top-0 left-0 h-full w-64 bg-gray-800 text-white flex flex-col shadow-lg z-40 transform transition-transform lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                         <div className="px-6 py-4 flex items-center gap-3 border-b border-gray-700"><RepairIcon /><h2 className="text-lg font-semibold">RepairShop Pro</h2></div>
                         <nav className="flex-1 px-4 py-4 space-y-2">{navItems.map(item => (<a key={item.id} href="#" onClick={(e) => { e.preventDefault(); setActivePage(item.id); setOpen(false); }} className={`flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activePage === item.id ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}>{item.icon}<span>{item.label}</span></a>))}</nav>
-                        <div className="px-4 py-4 border-t border-gray-700"><a href="#" className="flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"><SettingsIcon /><span>Cài đặt</span></a></div>
+                        <div className="px-4 py-4 border-t border-gray-700 space-y-2">
+                           <div className="px-4 py-2 text-sm text-gray-400">
+                                <p>Đăng nhập với:</p>
+                                <p className="font-medium text-white truncate">{user?.email}</p>
+                           </div>
+                           <a href="#" onClick={onLogout} className="flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"><LogoutIcon /><span>Đăng xuất</span></a>
+                        </div>
                     </div>
                 </>
             );
         }
 
-        const ReportsPage = ({ userId }) => {
+        const ReportsPage = ({ user }) => {
             const [stats, setStats] = React.useState({ totalRevenue: 0, repairsCount: 0, newCustomers: 0 });
             const [revenueData, setRevenueData] = React.useState([]);
             const [topServices, setTopServices] = React.useState([]);
@@ -676,7 +979,7 @@
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
 
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; }
+                if (!user || !db) { setLoading(false); return; }
 
                 const fetchAllData = async () => {
                     setLoading(true);
@@ -694,7 +997,7 @@
                     ]);
                     
                     const invoices = invoicesSnapshot.docs.map(d => ({...d.data(), id: d.id}));
-                    const totalRevenue = invoices.reduce((sum, inv) => sum + inv.total, 0);
+                    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
                     const repairsCount = ordersSnapshot.size;
                     const newCustomers = customersSnapshot.docs.filter(doc => doc.data().lastSeen?.toDate() >= last30Days).length;
                     setStats({ totalRevenue, repairsCount, newCustomers });
@@ -709,7 +1012,7 @@
                         if(inv.createdAt?.toDate) {
                             const date = inv.createdAt.toDate().toLocaleDateString('vi-VN');
                             if(dailyRevenue[date] !== undefined) {
-                                dailyRevenue[date] += inv.total;
+                                dailyRevenue[date] += (inv.total || 0);
                             }
                         }
                     });
@@ -718,7 +1021,7 @@
 
                     const itemCounts = {};
                     invoices.forEach(inv => {
-                        inv.items.forEach(item => {
+                        (inv.items || []).forEach(item => {
                             itemCounts[item.name] = (itemCounts[item.name] || 0) + 1;
                         });
                     });
@@ -732,7 +1035,7 @@
 
                 fetchAllData();
 
-            }, [userId, appId]);
+            }, [user, appId]);
 
             const maxRevenue = React.useMemo(() => Math.max(...revenueData.map(d => d.revenue), 1), [revenueData]);
 
@@ -742,7 +1045,7 @@
                 <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Báo cáo & Thống kê</h1>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        <div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Doanh thu (30 ngày)</h4><p className="text-3xl font-bold text-green-600">{stats.totalRevenue.toLocaleString('vi-VN')} đ</p></div>
+                        <div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Doanh thu (30 ngày)</h4><p className="text-3xl font-bold text-green-600">{(stats.totalRevenue || 0).toLocaleString('vi-VN')} đ</p></div>
                         <div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Phiếu đã sửa (30 ngày)</h4><p className="text-3xl font-bold text-blue-600">{stats.repairsCount}</p></div>
                         <div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Khách hàng mới (30 ngày)</h4><p className="text-3xl font-bold text-purple-600">{stats.newCustomers}</p></div>
                     </div>
@@ -755,7 +1058,7 @@
                                     <div key={date} className="flex-1 flex flex-col items-center group">
                                         <div className="w-full h-full bg-blue-200 rounded-t-md hover:bg-blue-400 transition-colors" style={{ height: `${(revenue / maxRevenue) * 100}%` }}></div>
                                         <span className="text-xs text-gray-500 mt-1">{date.split('/')[0]}</span>
-                                        <div className="hidden group-hover:block absolute bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-16 pointer-events-none">{revenue.toLocaleString('vi-VN')} đ</div>
+                                        <div className="hidden group-hover:block absolute bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-16 pointer-events-none">{(revenue || 0).toLocaleString('vi-VN')} đ</div>
                                     </div>
                                 ))}
                             </div>
@@ -776,7 +1079,7 @@
                         <h4 className="font-semibold text-lg mb-4">Hóa đơn gần đây</h4>
                         <div className="overflow-x-auto">
                             <table className="min-w-full"><thead className="text-left text-sm text-gray-500"><tr><th className="py-2">Ngày</th><th className="py-2">Khách hàng</th><th className="py-2 text-right">Tổng tiền</th></tr></thead>
-                            <tbody>{recentInvoices.map(inv => (<tr key={inv.id} className="border-b"><td className="py-2 text-sm">{inv.createdAt?.toDate().toLocaleDateString('vi-VN')}</td><td className="py-2 text-sm">{inv.customerName}</td><td className="py-2 text-sm text-right font-medium">{inv.total.toLocaleString('vi-VN')} đ</td></tr>))}</tbody>
+                            <tbody>{recentInvoices.map(inv => (<tr key={inv.id} className="border-b"><td className="py-2 text-sm">{inv.createdAt?.toDate().toLocaleDateString('vi-VN')}</td><td className="py-2 text-sm">{inv.customerName}</td><td className="py-2 text-sm text-right font-medium">{(inv.total || 0).toLocaleString('vi-VN')} đ</td></tr>))}</tbody>
                             </table>
                         </div>
                     </div>
@@ -784,14 +1087,14 @@
             )
         }
         
-        const InvoicesPage = ({userId}) => {
+        const InvoicesPage = ({user, userRole}) => {
             const [invoices, setInvoices] = React.useState([]);
             const [loading, setLoading] = React.useState(true);
             const [selectedInvoice, setSelectedInvoice] = React.useState(null);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
 
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; }
+                if (!user || !db) { setLoading(false); return; }
                 setLoading(true);
                 const q = db.collection(`artifacts/${appId}/public/data/invoices`).orderBy("createdAt", "desc");
                 const unsubscribe = q.onSnapshot((snapshot) => {
@@ -802,7 +1105,7 @@
                     setLoading(false);
                 });
                 return () => unsubscribe();
-            }, [userId, appId]);
+            }, [user, appId]);
 
             return (
                 <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full">
@@ -826,7 +1129,7 @@
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">{invoice.createdAt?.toDate().toLocaleDateString('vi-VN')}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">#{invoice.id.slice(0,6).toUpperCase()}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">{invoice.customerName}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm">{invoice.total.toLocaleString('vi-VN')} đ</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">{(invoice.total || 0).toLocaleString('vi-VN')} đ</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">{invoice.paymentMethod}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <button onClick={() => setSelectedInvoice(invoice)} className="text-indigo-600 hover:text-indigo-900">Xem & In</button>
@@ -843,7 +1146,7 @@
         };
         
         const PrintableInvoiceModal = ({ isOpen, onClose, invoice }) => {
-            if (!isOpen || !invoice) return null;
+            if (!isOpen) return null;
 
             const handlePrint = () => {
                 window.print();
@@ -852,7 +1155,7 @@
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
                     <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
-                        <div id="printable-area" className="p-8 text-gray-800 text-sm overflow-y-auto">
+                        <div className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
                                 <p className="text-sm">Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Nam Từ Liêm, Hà Nội</p>
@@ -865,9 +1168,9 @@
                             </div>
                             <table className="min-w-full divide-y divide-gray-300 mb-4">
                                 <thead className="bg-gray-100"><tr><th className="px-4 py-2 text-left text-sm font-semibold">STT</th><th className="px-4 py-2 text-left text-sm font-semibold">Tên mục</th><th className="px-4 py-2 text-center text-sm font-semibold">SL</th><th className="px-4 py-2 text-right text-sm font-semibold">Đơn giá</th><th className="px-4 py-2 text-right text-sm font-semibold">Thành tiền</th></tr></thead>
-                                <tbody>{invoice.items.map((item, index) => (<tr key={item.id} className="border-b"><td className="px-4 py-2">{index + 1}</td><td className="px-4 py-2">{item.name}</td><td className="px-4 py-2 text-center">{item.quantity}</td><td className="px-4 py-2 text-right">{item.price.toLocaleString('vi-VN')} đ</td><td className="px-4 py-2 text-right">{(item.price * item.quantity).toLocaleString('vi-VN')} đ</td></tr>))}</tbody>
+                                <tbody>{(invoice.items || []).map((item, index) => (<tr key={item.id} className="border-b"><td className="px-4 py-2">{index + 1}</td><td className="px-4 py-2">{item.name}</td><td className="px-4 py-2 text-center">{item.quantity}</td><td className="px-4 py-2 text-right">{(item.price || 0).toLocaleString('vi-VN')} đ</td><td className="px-4 py-2 text-right">{((item.price || 0) * (item.quantity || 1)).toLocaleString('vi-VN')} đ</td></tr>))}</tbody>
                             </table>
-                            <div className="text-right text-lg font-bold mb-8">Thành tiền: {invoice.total.toLocaleString('vi-VN')} đ</div>
+                            <div className="text-right text-lg font-bold mb-8">Thành tiền: {(invoice.total || 0).toLocaleString('vi-VN')} đ</div>
                             <div className="text-center text-sm text-gray-600">
                                 <p>Cảm ơn quý khách và hẹn gặp lại! </p>
                                 <p>hóa đơn có giá trị kiêm phiếu bảo hành sản phẩm 01 tháng</p>
@@ -881,71 +1184,239 @@
                 </div>
             );
         };
+        
+        const LoginPage = () => {
+            const [isLoginView, setIsLoginView] = React.useState(true);
+            const [email, setEmail] = React.useState('');
+            const [password, setPassword] = React.useState('');
+            const [error, setError] = React.useState('');
+            const [loading, setLoading] = React.useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setError('');
+
+                try {
+                    if (isLoginView) {
+                        await auth.signInWithEmailAndPassword(email, password);
+                    } else {
+                        // CẬP NHẬT: Logic đăng ký được đơn giản hóa và an toàn hơn
+                        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                        const user = userCredential.user;
+
+                        // Tất cả người dùng mới mặc định có vai trò 'user'.
+                        // Người dùng đầu tiên cần được nâng cấp thành 'admin' thủ công trong Firebase Console.
+                        const usersRef = db.collection('users');
+                        await usersRef.doc(user.uid).set({
+                            email: user.email,
+                            role: 'user', // Luôn đăng ký với vai trò 'user'
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        // Sau khi đăng ký thành công, người dùng sẽ tự động đăng nhập
+                    }
+                } catch (err) {
+                    switch (err.code) {
+                        case 'auth/user-not-found':
+                            setError('Email không tồn tại.');
+                            break;
+                        case 'auth/wrong-password':
+                            setError('Sai mật khẩu.');
+                            break;
+                        case 'auth/email-already-in-use':
+                            setError('Email này đã được sử dụng.');
+                            break;
+                        case 'auth/weak-password':
+                             setError('Mật khẩu phải có ít nhất 6 ký tự.');
+                             break;
+                        case 'auth/operation-not-allowed':
+                             setError('Đăng ký bằng Email/Mật khẩu chưa được bật trong Firebase.');
+                             break;
+                        default:
+                            setError('Đã xảy ra lỗi. Vui lòng thử lại.');
+                            console.error(err);
+                    }
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center p-4">
+                    <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
+                        <div className="text-center mb-8">
+                           <div className="flex justify-center items-center gap-3 mb-2">
+                                <RepairIcon />
+                                <h1 className="text-2xl font-bold text-gray-800">RepairShop Pro</h1>
+                           </div>
+                           <p className="text-gray-500">{isLoginView ? 'Đăng nhập vào tài khoản của bạn' : 'Tạo tài khoản mới'}</p>
+                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div>
+                                <label htmlFor="email" className="text-sm font-medium text-gray-700">Email</label>
+                                <input id="email" name="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} className={inputStyle} />
+                            </div>
+                            <div>
+                                <label htmlFor="password" className="text-sm font-medium text-gray-700">Mật khẩu</label>
+                                <input id="password" name="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} className={inputStyle} />
+                            </div>
+                            {error && <p className="text-red-500 text-sm">{error}</p>}
+                            <div>
+                                <button type="submit" disabled={loading} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300">
+                                    {loading ? 'Đang xử lý...' : (isLoginView ? 'Đăng nhập' : 'Đăng ký')}
+                                </button>
+                            </div>
+                        </form>
+                        <div className="text-center mt-6">
+                            <button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} className="text-sm text-blue-600 hover:underline">
+                                {isLoginView ? 'Chưa có tài khoản? Đăng ký' : 'Đã có tài khoản? Đăng nhập'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const AuditLogPage = ({ user, userRole }) => {
+            const [logs, setLogs] = React.useState([]);
+            const [loading, setLoading] = React.useState(true);
+            const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+
+            React.useEffect(() => {
+                if (userRole !== 'admin') {
+                    setLoading(false);
+                    return;
+                }
+                const unsubscribe = db.collection(`artifacts/${appId}/public/data/audit_logs`)
+                    .orderBy("timestamp", "desc")
+                    .limit(200)
+                    .onSnapshot(snapshot => {
+                        setLogs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                        setLoading(false);
+                    }, err => {
+                        console.error("Lỗi tải nhật ký:", err);
+                        setLoading(false);
+                    });
+                return () => unsubscribe();
+            }, [user, userRole, appId]);
+
+            if (userRole !== 'admin') {
+                return <div className="p-8 text-center"><h1 className="text-2xl font-bold text-red-600">Truy cập bị từ chối</h1><p className="text-gray-600 mt-2">Bạn không có quyền xem trang này.</p></div>;
+            }
+
+            return (
+                <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full">
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Nhật ký Hoạt động</h1>
+                    {loading ? <p className="text-center py-10">Đang tải...</p> : (
+                        <div className="bg-white rounded-lg shadow overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người dùng</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {logs.length > 0 ? logs.map(log => (
+                                        <tr key={log.id}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{log.timestamp?.toDate().toLocaleString('vi-VN') || '...'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.userEmail}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-700">{log.details}</td>
+                                        </tr>
+                                    )) : (
+                                        <tr><td colSpan="3" className="px-6 py-4 text-center text-gray-500">Chưa có hoạt động nào được ghi lại.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            );
+        };
 
         function App() {
             const [activePage, setActivePage] = React.useState('reports');
-            const [userId, setUserId] = React.useState(null);
+            const [user, setUser] = React.useState(null);
+            const [userRole, setUserRole] = React.useState(null); // 'admin' or 'user'
             const [authReady, setAuthReady] = React.useState(false);
             const [isSidebarOpen, setSidebarOpen] = React.useState(false);
 
             React.useEffect(() => {
-                if (!auth) { setAuthReady(true); return; }
-                const performInitialSignIn = async () => {
-                    if (auth.currentUser) { setUserId(auth.currentUser.uid); setAuthReady(true); return; }
-                    const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                    try {
-                        const userCredential = token ? await auth.signInWithCustomToken(token) : await auth.signInAnonymously();
-                        setUserId(userCredential.user.uid);
-                    } catch (error) {
-                        console.warn(`Đăng nhập ban đầu thất bại (${error.code}). Chuyển sang đăng nhập ẩn danh.`);
-                        try {
-                            const userCredential = await auth.signInAnonymously();
-                            setUserId(userCredential.user.uid);
-                        } catch (fallbackError) {
-                            console.error("Lỗi nghiêm trọng: Đăng nhập ẩn danh cũng thất bại:", fallbackError);
+                if (!auth) { 
+                    setAuthReady(true); 
+                    return; 
+                }
+                const unsubscribe = auth.onAuthStateChanged(async (user) => {
+                    if (user) {
+                        // User is signed in.
+                        const userDocRef = db.collection('users').doc(user.uid);
+                        const userDoc = await userDocRef.get();
+                        if (userDoc.exists) {
+                            setUserRole(userDoc.data().role);
+                        } else {
+                            setUserRole('user'); 
                         }
-                    } finally {
+                        setUser(user);
+                    } else {
+                        // User is signed out.
+                        setUser(null);
+                        setUserRole(null);
+                    }
+                    if (!authReady) {
                         setAuthReady(true);
                     }
-                };
-                const unsubscribe = auth.onAuthStateChanged((user) => { setUserId(user ? user.uid : null); if (!authReady) { setAuthReady(true); } });
-                performInitialSignIn();
+                });
                 return () => unsubscribe();
             }, [authReady]);
 
+            const handleLogout = () => {
+                auth.signOut();
+            };
+
             const renderPage = () => {
-                if (!isFirebaseInitialized) {
-                    return (
-                        <div className="flex justify-center items-center h-screen w-screen bg-red-100 text-red-800 p-4">
-                            <div className="text-center">
-                                <h1 className="text-2xl font-bold">Lỗi Cấu hình Firebase</h1>
-                                <p className="mt-2">Không thể kết nối đến cơ sở dữ liệu. Vui lòng thực hiện các bước sau:</p>
-                                <ol className="text-left list-decimal list-inside mt-4 space-y-2">
-                                    <li>Mở file <code>quan-ly-sua-chua.html</code> bằng trình soạn thảo văn bản.</li>
-                                    <li>Tìm đến phần <strong>`// --- FIREBASE CONFIG ---`</strong>.</li>
-                                    <li>Thay thế các giá trị mẫu bằng thông tin cấu hình từ dự án Firebase của bạn.</li>
-                                    <li>Lưu file và làm mới lại trang này.</li>
-                                </ol>
-                            </div>
-                        </div>
-                    );
-                }
-                if (!authReady) { return (<div className="flex justify-center items-center h-screen w-screen"><p className="text-lg">Đang khởi tạo...</p></div>); }
                 switch (activePage) {
-                    case 'reports': return <ReportsPage userId={userId} />;
-                    case 'repairs': return <RepairOrdersPage userId={userId} />;
-                    case 'invoices': return <InvoicesPage userId={userId} />;
-                    case 'customers': return <CustomersPage userId={userId} />;
-                    case 'inventory': return <InventoryPage userId={userId} />;
-                    case 'services': return <ServicesPage userId={userId} />;
-                    case 'dashboard': return <PlaceholderComponent title="Bảng điều khiển" />;
-                    default: return <ReportsPage userId={userId} />;
+                    case 'reports': return <ReportsPage user={user} userRole={userRole} />;
+                    case 'repairs': return <RepairOrdersPage user={user} userRole={userRole} />;
+                    case 'invoices': return <InvoicesPage user={user} userRole={userRole} />;
+                    case 'customers': return <CustomersPage user={user} userRole={userRole} />;
+                    case 'inventory': return <InventoryPage user={user} userRole={userRole} />;
+                    case 'services': return <ServicesPage user={user} userRole={userRole} />;
+                    case 'history': return <AuditLogPage user={user} userRole={userRole} />;
+                    default: return <ReportsPage user={user} userRole={userRole} />;
                 }
             };
             
+            if (!isFirebaseInitialized) {
+                return (
+                    <div className="flex justify-center items-center h-screen w-screen bg-red-100 text-red-800 p-4">
+                        <div className="text-center">
+                            <h1 className="text-2xl font-bold">Lỗi Cấu hình Firebase</h1>
+                            <p className="mt-2">Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra lại thông tin cấu hình Firebase.</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (!authReady) { 
+                return (<div className="flex justify-center items-center h-screen w-screen"><p className="text-lg">Đang khởi tạo...</p></div>); 
+            }
+
+            if (!user) {
+                return <LoginPage />;
+            }
+            
             return (
                 <div className="min-h-screen bg-slate-100">
-                    <Sidebar activePage={activePage} setActivePage={setActivePage} isOpen={isSidebarOpen} setOpen={setSidebarOpen} />
+                    <Sidebar 
+                        activePage={activePage} 
+                        setActivePage={setActivePage} 
+                        isOpen={isSidebarOpen} 
+                        setOpen={setSidebarOpen} 
+                        user={user}
+                        userRole={userRole}
+                        onLogout={handleLogout}
+                    />
                     <main className="lg:ml-64">
                         <div className="lg:hidden p-4 bg-white border-b flex justify-between items-center sticky top-0 z-20">
                            <h2 className="font-bold text-lg">RepairShop Pro</h2>
