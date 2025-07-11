@@ -36,27 +36,10 @@
             background: #64748b;
         }
         
-        /* CẬP NHẬT QUY TẮC IN ĐỂ SỬA LỖI LẶP TRANG */
-        @media print {
-            /* Ẩn tất cả các phần tử trên trang */
-            body * {
-                visibility: hidden;
-            }
-            /* Chỉ hiển thị khu vực được chỉ định để in và tất cả các phần tử con của nó */
-            .printable-area, .printable-area * {
-                visibility: visible;
-            }
-            /* Đặt khu vực in ở góc trên cùng bên trái của trang in */
-            .printable-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
-            /* Đảm bảo các nút và các phần tử không mong muốn khác bị ẩn đi */
-            .no-print {
-                display: none !important;
-            }
+        /* === SỬA LỖI IN (PHIÊN BẢN 4 - IFRAME) === */
+        /* Không cần quy tắc @media print nữa vì chúng ta sẽ tạo một iframe riêng để in */
+        .no-print {
+             display: revert; /* Đảm bảo các nút hiển thị bình thường trên màn hình */
         }
     </style>
 </head>
@@ -183,6 +166,48 @@
             document.body.removeChild(link);
         }
 
+        // --- PRINT HELPER ---
+        const printWithIframe = (printableElement) => {
+            if (!printableElement) {
+                console.error("Phần tử để in không tồn tại!");
+                return;
+            }
+
+            const contentToPrint = printableElement.cloneNode(true);
+            const noPrintElements = contentToPrint.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => el.remove());
+
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'absolute';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            document.body.appendChild(iframe);
+
+            const iframeDoc = iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write('<html><head><title>In Phiếu</title>');
+
+            const styles = document.querySelectorAll('style, link[rel="stylesheet"]');
+            styles.forEach(style => {
+                iframeDoc.write(style.outerHTML);
+            });
+            
+            iframeDoc.write('<style>body { margin: 1cm; } @page { size: A4; margin: 0; } </style>');
+            iframeDoc.write('</head><body>');
+            iframeDoc.write(contentToPrint.innerHTML);
+            iframeDoc.write('</body></html>');
+            iframeDoc.close();
+
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 500);
+        };
+
+
         // --- UI COMPONENTS ---
         const inputStyle = "mt-1 block w-full rounded-md border-slate-300 bg-white py-2 px-3 shadow-sm placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 sm:text-sm";
         const formInputStyle = "mt-1 block w-full rounded-md border-2 border-sky-300 bg-white py-2 px-3 shadow-sm placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 sm:text-sm";
@@ -254,10 +279,11 @@
         };
         
         const PrintableReceiptModal = ({ isOpen, onClose, order }) => {
+            const modalContentRef = React.useRef();
             if (!isOpen) return null;
 
             const handlePrint = () => {
-                window.print();
+                printWithIframe(modalContentRef.current);
             };
             
             const getFormattedDate = (date) => {
@@ -268,7 +294,7 @@
 
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
+                    <div ref={modalContentRef} className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
                         <div className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
@@ -327,10 +353,11 @@
         };
 
         const PrintableWarrantyModal = ({ isOpen, onClose, invoiceData, orderDetails }) => {
+            const modalContentRef = React.useRef();
             if (!isOpen) return null;
         
             const handlePrint = () => {
-                window.print();
+                printWithIframe(modalContentRef.current);
             };
         
             const getFormattedDate = (date) => {
@@ -348,7 +375,7 @@
         
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
+                    <div ref={modalContentRef} className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
                         <div className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
@@ -516,7 +543,7 @@
                                     <button onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 col-span-1"><DeleteIcon /></button>
                                 </div>
                             ))}
-                             <datalist id="item-suggestions">
+                            <datalist id="item-suggestions">
                                 {services.map(s => <option key={s.id} value={s.serviceName} />)}
                                 {parts.map(p => <option key={p.id} value={p.partName} />)}
                             </datalist>
@@ -633,13 +660,13 @@
                     </div>
                     <div className="mb-4"><label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo trạng thái:</label><select id="statusFilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={inputStyle + ' max-w-xs'}><option>Tất cả</option>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select></div>
                     {loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã Phiếu</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách Hàng</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thiết Bị</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vấn Đề</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày Nhận</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá Dự Kiến</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th><th scope="col" className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredOrders.length > 0 ? filteredOrders.map(order => (<tr key={order.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-600">#{order.id.slice(0,6)}</td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{order.customerName}</div><div className="text-sm text-gray-500">{order.customerPhone}</div></td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{order.deviceModel}</div><div className="text-sm text-gray-500">{order.deviceType}</div></td><td className="px-6 py-4 max-w-xs whitespace-normal"><p className="text-sm text-gray-900 truncate">{order.reportedProblem}</p></td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{(order.estimatedCost || 0).toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap"><div className="flex items-center gap-2"><select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)} className={`text-xs font-semibold rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-offset-1 ${getStatusColor(order.status)}`} style={{appearance: 'none', WebkitAppearance: 'none'}}>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>{order.isWarranty && <span title="Phiếu bảo hành" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800"><WarrantyIcon/></span>}</div></td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2"><button onClick={() => setReceiptToPrint(order)} className="text-gray-500 hover:text-gray-800" title="In Phiếu hẹn"><PrintIcon /></button>
-                    {userRole === 'admin' && (
-                        <>
-                            <button onClick={() => handleOpenEditModal(order)} className="text-indigo-600 hover:text-indigo-900"><EditIcon /></button>
-                            {order.status === 'Sẵn sàng trả khách' && (<button onClick={() => handleOpenInvoiceModal(order)} className="text-green-600 hover:text-green-900">Tạo Hóa đơn</button>)}
-                        </>
-                    )}
-                    </td></tr>)) : (<tr><td colSpan="8" className="px-6 py-4 text-center text-gray-500">Không có phiếu sửa chữa nào.</td></tr>)}</tbody></table></div>)}
+                        {userRole === 'admin' && (
+                            <>
+                                <button onClick={() => handleOpenEditModal(order)} className="text-indigo-600 hover:text-indigo-900"><EditIcon /></button>
+                                {order.status === 'Sẵn sàng trả khách' && (<button onClick={() => handleOpenInvoiceModal(order)} className="text-green-600 hover:text-green-900">Tạo Hóa đơn</button>)}
+                            </>
+                        )}
+                        </td></tr>)) : (<tr><td colSpan="8" className="px-6 py-4 text-center text-gray-500">Không có phiếu sửa chữa nào.</td></tr>)}</tbody></table></div>)}
                     {userRole === 'admin' && <NewOrderModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveOrder} orderToEdit={editingOrder} />}
                     {selectedOrderForInvoice && <InvoiceModal isOpen={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} order={selectedOrderForInvoice} onInvoiceSaved={handleInvoiceSaved} user={user} />}
                     {receiptToPrint && <PrintableReceiptModal isOpen={!!receiptToPrint} onClose={() => setReceiptToPrint(null)} order={{...receiptToPrint, createdAt: receiptToPrint.createdAt?.toDate ? receiptToPrint.createdAt.toDate() : new Date()}} />}
@@ -732,15 +759,16 @@
         };
 
         const PrintableInventoryModal = ({ isOpen, onClose, parts }) => {
+            const modalContentRef = React.useRef();
             if (!isOpen) return null;
 
             const handlePrint = () => {
-                window.print();
+                printWithIframe(modalContentRef.current);
             };
 
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
+                    <div ref={modalContentRef} className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
                         <div className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
@@ -1147,15 +1175,16 @@
         };
         
         const PrintableInvoiceModal = ({ isOpen, onClose, invoice }) => {
+            const modalContentRef = React.useRef();
             if (!isOpen) return null;
 
             const handlePrint = () => {
-                window.print();
+                printWithIframe(modalContentRef.current);
             };
 
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
+                    <div ref={modalContentRef} className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
                         <div className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
@@ -1439,3 +1468,4 @@
     </script>
 </body>
 </html>
+" selected. I'd like to make a change to my docume
