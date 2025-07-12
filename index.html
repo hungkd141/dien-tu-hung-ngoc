@@ -123,9 +123,8 @@
                 return;
             }
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const userId = user.uid;
             try {
-                await db.collection(`artifacts/${appId}/users/${userId}/audit_logs`).add({
+                await db.collection(`artifacts/${appId}/public/data/audit_logs`).add({
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     userEmail: user.email,
                     action: action,
@@ -434,17 +433,16 @@
             const [services, setServices] = React.useState([]);
             const [paymentMethod, setPaymentMethod] = React.useState('Tiền mặt');
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
-            const userId = user.uid;
 
             React.useEffect(() => {
                 if (isOpen) {
                     // Fetch parts and services to populate dropdowns
                     const fetchPartsAndServices = async () => {
                         try {
-                            const partsSnapshot = await db.collection(`artifacts/${appId}/users/${userId}/inventoryParts`).get();
+                            const partsSnapshot = await db.collection(`artifacts/${appId}/public/data/inventoryParts`).get();
                             setParts(partsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-                            const servicesSnapshot = await db.collection(`artifacts/${appId}/users/${userId}/services`).get();
+                            const servicesSnapshot = await db.collection(`artifacts/${appId}/public/data/services`).get();
                             setServices(servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                         } catch(e) {
                             console.error("Lỗi tải linh kiện/dịch vụ cho hóa đơn:", e);
@@ -458,7 +456,7 @@
                         setItems([]);
                     }
                 }
-            }, [isOpen, order, appId, userId]);
+            }, [isOpen, order, appId]);
 
             const handleAddItem = () => {
                 setItems([...items, { id: `item-${Date.now()}`, name: '', quantity: 1, price: 0 }]);
@@ -502,8 +500,8 @@
                 };
 
                 try {
-                    const invoiceRef = await db.collection(`artifacts/${appId}/users/${userId}/invoices`).add(invoiceData);
-                    await db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).doc(order.id).update({ status: 'Đã trả khách' });
+                    const invoiceRef = await db.collection(`artifacts/${appId}/public/data/invoices`).add(invoiceData);
+                    await db.collection(`artifacts/${appId}/public/data/repairOrders`).doc(order.id).update({ status: 'Đã trả khách' });
                     await logAction(user, 'create', 'Hóa đơn', `Tạo hóa đơn #${invoiceRef.id.slice(0,6)} cho phiếu #${order.id.slice(0,6)}.`, invoiceRef.id);
                     onInvoiceSaved({ ...invoiceData, id: invoiceRef.id, createdAt: new Date() }, order);
                 } catch (e) {
@@ -592,23 +590,17 @@
             const [filterStatus, setFilterStatus] = React.useState('Tất cả');
             const repairStatuses = React.useMemo(() => ["Mới nhận", "Đang kiểm tra", "Chờ báo giá", "Chờ linh kiện", "Đang sửa", "Sửa xong, chờ QC", "Sẵn sàng trả khách", "Đã trả khách","Báo giá không sửa"], []);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
-            const userId = user.uid;
 
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; }
+                if (!user || !db) { setLoading(false); return; }
                 setLoading(true);
-                let q;
-                if (userRole === 'admin') {
-                    q = db.collectionGroup('repairOrders').orderBy("createdAt", "desc");
-                } else {
-                    q = db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).orderBy("createdAt", "desc");
-                }
-                const unsubscribe = q.onSnapshot((snapshot) => { setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi: ", err); setError("Lỗi tải dữ liệu. Nếu bạn là admin, vui lòng nhấn vào đường link trong console để tạo chỉ mục cần thiết."); setLoading(false); });
+                const q = db.collection(`artifacts/${appId}/public/data/repairOrders`).orderBy("createdAt", "desc");
+                const unsubscribe = q.onSnapshot((snapshot) => { setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi: ", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
                 return () => unsubscribe();
-            }, [userId, userRole, appId]);
+            }, [user, appId]);
             
             const handleSaveOrder = React.useCallback(async (orderData) => {
-                if (!userId || !db) return;
+                if (!user || !db) return;
                 const { id, ...dataToSave } = orderData;
                 
                 if (dataToSave.deviceType === 'Khác') {
@@ -618,23 +610,23 @@
 
                 try {
                     if (id) {
-                        await db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).doc(id).update(dataToSave);
+                        await db.collection(`artifacts/${appId}/public/data/repairOrders`).doc(id).update(dataToSave);
                         await logAction(user, 'update', 'Phiếu Sửa Chữa', `Cập nhật phiếu #${id.slice(0,6)} cho khách hàng ${dataToSave.customerName}.`, id);
                     } else {
-                        const orderRef = await db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).add({ ...dataToSave, status: 'Mới nhận', createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: user.uid });
+                        const orderRef = await db.collection(`artifacts/${appId}/public/data/repairOrders`).add({ ...dataToSave, status: 'Mới nhận', createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: user.uid });
                         await orderRef.update({ orderId: orderRef.id });
                         setReceiptToPrint({ ...dataToSave, id: orderRef.id, createdAt: new Date() });
                         await logAction(user, 'create', 'Phiếu Sửa Chữa', `Tạo mới phiếu cho khách hàng ${dataToSave.customerName}.`, orderRef.id);
                     }
-                    const customerDocRef = db.collection(`artifacts/${appId}/users/${userId}/customers`).doc(dataToSave.customerPhone);
+                    const customerDocRef = db.collection(`artifacts/${appId}/public/data/customers`).doc(dataToSave.customerPhone);
                     await customerDocRef.set({ customerName: dataToSave.customerName, customerPhone: dataToSave.customerPhone, customerAddress: dataToSave.customerAddress, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
 
                 } catch (e) { console.error("Lỗi: ", e); alert("Lỗi khi lưu."); }
-            }, [userId, user, appId]);
+            }, [user, appId]);
             
             const handleStatusChange = React.useCallback(async (orderId, newStatus) => {
-                if (!userId || !db) return;
-                const docRef = db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).doc(orderId);
+                if (!user || !db) return;
+                const docRef = db.collection(`artifacts/${appId}/public/data/repairOrders`).doc(orderId);
                 try {
                     const oldDoc = await docRef.get();
                     if (oldDoc.exists) {
@@ -643,7 +635,7 @@
                         await logAction(user, 'status_change', 'Phiếu Sửa Chữa', `Đổi trạng thái phiếu #${orderId.slice(0,6)} từ '${oldStatus}' sang '${newStatus}'.`, orderId);
                     }
                 } catch(e) { console.error("Lỗi:", e); alert("Lỗi cập nhật."); }
-            }, [userId, user, appId]);
+            }, [user, appId]);
 
             const handleOpenInvoiceModal = (order) => { setSelectedOrderForInvoice(order); setIsInvoiceModalOpen(true); }
             const handleOpenEditModal = (order) => { setEditingOrder(order); setIsModalOpen(true); }
@@ -739,13 +731,13 @@
             );
         };
 
-        const CustomerHistoryModal = ({ isOpen, onClose, customer, userId }) => {
+        const CustomerHistoryModal = ({ isOpen, onClose, customer }) => {
             const [orders, setOrders] = React.useState([]); const [loading, setLoading] = React.useState(false);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
             React.useEffect(() => {
-                if (!isOpen || !customer || !db || !userId) { setOrders([]); return; }
+                if (!isOpen || !customer || !db) { setOrders([]); return; }
                 setLoading(true);
-                const q = db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).where("customerPhone", "==", customer.customerPhone);
+                const q = db.collection(`artifacts/${appId}/public/data/repairOrders`).where("customerPhone", "==", customer.customerPhone);
                 const getHistory = async () => { 
                     try { 
                         const querySnapshot = await q.get(); 
@@ -759,7 +751,7 @@
                     } 
                 };
                 getHistory();
-            }, [isOpen, customer, userId, appId]);
+            }, [isOpen, customer, appId]);
             if (!isOpen) return null;
             return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"><div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"><div className="flex justify-between items-center p-4 border-b"><h2 className="text-xl font-bold text-gray-800">Lịch sử sửa chữa: {customer.customerName}</h2><button onClick={onClose} className="text-gray-500 hover:text-gray-800"><CloseIcon /></button></div><div className="p-6 overflow-y-auto">{loading ? <p>Đang tải...</p> : ( orders.length > 0 ? ( <ul className="space-y-4">{orders.map(order => ( <li key={order.id} className="p-4 border rounded-md bg-gray-50"><p><strong>Ngày nhận:</strong> {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</p><p><strong>Thiết bị:</strong> {order.deviceType} - {order.deviceModel} ({order.deviceSerial})</p><p><strong>Vấn đề:</strong> {order.reportedProblem}</p><p><strong>Trạng thái:</strong> {order.status}</p></li> ))}</ul> ) : <p>Không có lịch sử.</p> )}</div></div></div> );
         };
@@ -767,18 +759,12 @@
         const CustomersPage = ({ user, userRole }) => {
             const [customers, setCustomers] = React.useState([]); const [loading, setLoading] = React.useState(true); const [error, setError] = React.useState(null); const [searchTerm, setSearchTerm] = React.useState(""); const [selectedCustomer, setSelectedCustomer] = React.useState(null); const [isHistoryModalOpen, setIsHistoryModalOpen] = React.useState(false);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
-            const userId = user.uid;
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; } setLoading(true);
-                let q;
-                if (userRole === 'admin') {
-                    q = db.collectionGroup('customers').orderBy("lastSeen", "desc");
-                } else {
-                    q = db.collection(`artifacts/${appId}/users/${userId}/customers`).orderBy("lastSeen", "desc");
-                }
+                if (!user || !db) { setLoading(false); return; } setLoading(true);
+                const q = db.collection(`artifacts/${appId}/public/data/customers`).orderBy("lastSeen", "desc");
                 const unsubscribe = q.onSnapshot((snapshot) => { setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
                 return () => unsubscribe();
-            }, [userId, userRole, appId]);
+            }, [user, appId]);
             const handleViewHistory = (customer) => { setSelectedCustomer(customer); setIsHistoryModalOpen(true); };
             const filteredCustomers = React.useMemo(() => customers.filter(c => c.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) || c.customerPhone?.includes(searchTerm)), [customers, searchTerm]);
             return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Khách hàng</h1>
@@ -790,7 +776,7 @@
             <div className="bg-white rounded-lg shadow overflow-x-auto">
                 <table className="w-full table-fixed divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="w-1/4 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th><th scope="col" className="w-1/5 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SĐT</th><th scope="col" className="w-[30%] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa Chỉ</th><th scope="col" className="w-[15%] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lần cuối ghé</th><th scope="col" className="w-[10%] relative px-4 py-3"><span className="sr-only">Hành động</span></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredCustomers.length > 0 ? filteredCustomers.map(customer => (<tr key={customer.id} className="hover:bg-gray-50"><td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate" title={customer.customerName}>{customer.customerName}</td><td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerPhone}</td><td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 truncate" title={customer.customerAddress}>{customer.customerAddress || 'N/A'}</td><td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{customer.lastSeen?.toDate ? customer.lastSeen.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button onClick={() => handleViewHistory(customer)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center gap-1"><HistoryIcon /> </button></td></tr>)) : (<tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Không tìm thấy khách hàng.</td></tr>)}</tbody></table>
             </div>
-            )}<CustomerHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} customer={selectedCustomer} userId={userId} /></div> );
+            )}<CustomerHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} customer={selectedCustomer} /></div> );
         };
 
         const PartFormModal = ({ isOpen, onClose, onSave, part }) => {
@@ -890,37 +876,31 @@
             const [isPrintModalOpen, setIsPrintModalOpen] = React.useState(false);
             const [confirmDelete, setConfirmDelete] = React.useState(null);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
-            const userId = user.uid;
             
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; } setLoading(true);
-                let q;
-                if (userRole === 'admin') {
-                    q = db.collectionGroup('inventoryParts').orderBy("partName");
-                } else {
-                    q = db.collection(`artifacts/${appId}/users/${userId}/inventoryParts`).orderBy("partName");
-                }
+                if (!user || !db) { setLoading(false); return; } setLoading(true);
+                const q = db.collection(`artifacts/${appId}/public/data/inventoryParts`).orderBy("partName");
                 const unsubscribe = q.onSnapshot((snapshot) => { setParts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
                 return () => unsubscribe();
-            }, [userId, userRole, appId]);
+            }, [user, appId]);
 
             const handleSavePart = React.useCallback(async (partData) => {
-                if (!userId || !db) return;
+                if (!user || !db) return;
                 const { id, ...dataToSave } = partData;
                 try {
                     if (id) { 
-                        await db.collection(`artifacts/${appId}/users/${userId}/inventoryParts`).doc(id).update(dataToSave); 
+                        await db.collection(`artifacts/${appId}/public/data/inventoryParts`).doc(id).update(dataToSave); 
                         await logAction(user, 'update', 'Linh kiện', `Cập nhật linh kiện '${dataToSave.partName}'.`, id);
                     } else { 
-                        const newRef = await db.collection(`artifacts/${appId}/users/${userId}/inventoryParts`).add(dataToSave); 
+                        const newRef = await db.collection(`artifacts/${appId}/public/data/inventoryParts`).add(dataToSave); 
                         await logAction(user, 'create', 'Linh kiện', `Tạo mới linh kiện '${dataToSave.partName}'.`, newRef.id);
                     }
                 } catch (e) { console.error("Lỗi:", e); }
-            }, [userId, user, appId]);
+            }, [user, appId]);
             
             const handleDeletePart = React.useCallback(async (partId) => {
-                if (!userId || !db || !partId) return;
-                const docRef = db.collection(`artifacts/${appId}/users/${userId}/inventoryParts`).doc(partId);
+                if (!user || !db || !partId) return;
+                const docRef = db.collection(`artifacts/${appId}/public/data/inventoryParts`).doc(partId);
                 try { 
                     const doc = await docRef.get();
                     if(doc.exists) {
@@ -931,7 +911,7 @@
                     setConfirmDelete(null);
                 } 
                 catch (e) { console.error("Lỗi:", e); }
-            }, [userId, user, appId]);
+            }, [user, appId]);
             
             const openModalToAdd = () => { setEditingPart(null); setIsModalOpen(true); };
             const openModalToEdit = (part) => { setEditingPart(part); setIsModalOpen(true); };
@@ -994,37 +974,31 @@
             const [services, setServices] = React.useState([]); const [loading, setLoading] = React.useState(true); const [error, setError] = React.useState(null); const [isModalOpen, setIsModalOpen] = React.useState(false); const [editingService, setEditingService] = React.useState(null);
             const [confirmDelete, setConfirmDelete] = React.useState(null);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
-            const userId = user.uid;
             
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; } setLoading(true);
-                let q;
-                if (userRole === 'admin') {
-                    q = db.collectionGroup('services').orderBy("serviceName");
-                } else {
-                    q = db.collection(`artifacts/${appId}/users/${userId}/services`).orderBy("serviceName");
-                }
+                if (!user || !db) { setLoading(false); return; } setLoading(true);
+                const q = db.collection(`artifacts/${appId}/public/data/services`).orderBy("serviceName");
                 const unsubscribe = q.onSnapshot((snapshot) => { setServices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
                 return () => unsubscribe();
-            }, [userId, userRole, appId]);
+            }, [user, appId]);
 
             const handleSaveService = React.useCallback(async (serviceData) => {
-                if (!userId || !db) return;
+                if (!user || !db) return;
                 const { id, ...dataToSave } = serviceData;
                 try {
                     if (id) { 
-                        await db.collection(`artifacts/${appId}/users/${userId}/services`).doc(id).update(dataToSave); 
+                        await db.collection(`artifacts/${appId}/public/data/services`).doc(id).update(dataToSave); 
                         await logAction(user, 'update', 'Dịch vụ', `Cập nhật dịch vụ '${dataToSave.serviceName}'.`, id);
                     } else { 
-                        const newRef = await db.collection(`artifacts/${appId}/users/${userId}/services`).add(dataToSave); 
+                        const newRef = await db.collection(`artifacts/${appId}/public/data/services`).add(dataToSave); 
                         await logAction(user, 'create', 'Dịch vụ', `Tạo mới dịch vụ '${dataToSave.serviceName}'.`, newRef.id);
                     }
                 } catch (e) { console.error("Lỗi:", e); }
-            }, [userId, user, appId]);
+            }, [user, appId]);
             
             const handleDeleteService = React.useCallback(async (serviceId) => {
-                if (!userId || !db || !serviceId) return;
-                const docRef = db.collection(`artifacts/${appId}/users/${userId}/services`).doc(serviceId);
+                if (!user || !db || !serviceId) return;
+                const docRef = db.collection(`artifacts/${appId}/public/data/services`).doc(serviceId);
                 try { 
                     const doc = await docRef.get();
                     if(doc.exists) {
@@ -1035,7 +1009,7 @@
                     setConfirmDelete(null);
                 } 
                 catch (e) { console.error("Lỗi:", e); }
-            }, [userId, user, appId]);
+            }, [user, appId]);
             
             const openModalToAdd = () => { setEditingService(null); setIsModalOpen(true); };
             const openModalToEdit = (service) => { setEditingService(service); setIsModalOpen(true); };
@@ -1096,85 +1070,72 @@
             );
         }
 
-        const ReportsPage = ({ user, userRole }) => {
+        const ReportsPage = ({ user }) => {
             const [stats, setStats] = React.useState({ totalRevenue: 0, repairsCount: 0, newCustomers: 0 });
             const [revenueData, setRevenueData] = React.useState([]);
             const [topServices, setTopServices] = React.useState([]);
             const [recentInvoices, setRecentInvoices] = React.useState([]);
             const [loading, setLoading] = React.useState(true);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
-            const userId = user.uid;
 
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; }
+                if (!user || !db) { setLoading(false); return; }
 
                 const fetchAllData = async () => {
                     setLoading(true);
                     const today = new Date();
                     const last30Days = new Date(new Date().setDate(today.getDate() - 30));
 
-                    let invoicesQuery, repairOrdersQuery, customersQuery;
-
-                    if (userRole === 'admin') {
-                        invoicesQuery = db.collectionGroup('invoices').where('createdAt', '>=', last30Days);
-                        repairOrdersQuery = db.collectionGroup('repairOrders').where('createdAt', '>=', last30Days);
-                        customersQuery = db.collectionGroup('customers');
-                    } else {
-                        invoicesQuery = db.collection(`artifacts/${appId}/users/${userId}/invoices`).where('createdAt', '>=', last30Days);
-                        repairOrdersQuery = db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).where('createdAt', '>=', last30Days);
-                        customersQuery = db.collection(`artifacts/${appId}/users/${userId}/customers`);
-                    }
+                    const invoicesQuery = db.collection(`artifacts/${appId}/public/data/invoices`).where('createdAt', '>=', last30Days);
+                    const repairOrdersQuery = db.collection(`artifacts/${appId}/public/data/repairOrders`).where('createdAt', '>=', last30Days);
+                    const customersQuery = db.collection(`artifacts/${appId}/public/data/customers`);
                     
-                    try {
-                        const [invoicesSnapshot, ordersSnapshot, customersSnapshot] = await Promise.all([
-                            invoicesQuery.get(),
-                            repairOrdersQuery.get(),
-                            customersQuery.get()
-                        ]);
-                        
-                        const invoices = invoicesSnapshot.docs.map(d => ({...d.data(), id: d.id}));
-                        const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
-                        const repairsCount = ordersSnapshot.size;
-                        const newCustomers = customersSnapshot.docs.filter(doc => doc.data().lastSeen?.toDate() >= last30Days).length;
-                        setStats({ totalRevenue, repairsCount, newCustomers });
+                    const [invoicesSnapshot, ordersSnapshot, customersSnapshot] = await Promise.all([
+                        invoicesQuery.get(),
+                        repairOrdersQuery.get(),
+                        customersQuery.get()
+                    ]);
+                    
+                    const invoices = invoicesSnapshot.docs.map(d => ({...d.data(), id: d.id}));
+                    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+                    const repairsCount = ordersSnapshot.size;
+                    const newCustomers = customersSnapshot.docs.filter(doc => doc.data().lastSeen?.toDate() >= last30Days).length;
+                    setStats({ totalRevenue, repairsCount, newCustomers });
 
-                        const dailyRevenue = {};
-                        for(let i=0; i<30; i++) {
-                            const d = new Date();
-                            d.setDate(d.getDate() - i);
-                            dailyRevenue[d.toLocaleDateString('vi-VN')] = 0;
-                        }
-                        invoices.forEach(inv => {
-                            if(inv.createdAt?.toDate) {
-                                const date = inv.createdAt.toDate().toLocaleDateString('vi-VN');
-                                if(dailyRevenue[date] !== undefined) {
-                                    dailyRevenue[date] += (inv.total || 0);
-                                }
-                            }
-                        });
-                        const chartData = Object.entries(dailyRevenue).map(([date, revenue]) => ({date, revenue})).reverse();
-                        setRevenueData(chartData);
-
-                        const itemCounts = {};
-                        invoices.forEach(inv => {
-                            (inv.items || []).forEach(item => {
-                                itemCounts[item.name] = (itemCounts[item.name] || 0) + 1;
-                            });
-                        });
-                        const sortedItems = Object.entries(itemCounts).sort(([,a],[,b]) => b-a).slice(0, 5);
-                        setTopServices(sortedItems);
-
-                        setRecentInvoices(invoices.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)).slice(0, 5));
-                    } catch (e) {
-                        console.error("Lỗi khi tải báo cáo:", e);
-                    } finally {
-                        setLoading(false);
+                    const dailyRevenue = {};
+                    for(let i=0; i<30; i++) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        dailyRevenue[d.toLocaleDateString('vi-VN')] = 0;
                     }
+                    invoices.forEach(inv => {
+                        if(inv.createdAt?.toDate) {
+                            const date = inv.createdAt.toDate().toLocaleDateString('vi-VN');
+                            if(dailyRevenue[date] !== undefined) {
+                                dailyRevenue[date] += (inv.total || 0);
+                            }
+                        }
+                    });
+                    const chartData = Object.entries(dailyRevenue).map(([date, revenue]) => ({date, revenue})).reverse();
+                    setRevenueData(chartData);
+
+                    const itemCounts = {};
+                    invoices.forEach(inv => {
+                        (inv.items || []).forEach(item => {
+                            itemCounts[item.name] = (itemCounts[item.name] || 0) + 1;
+                        });
+                    });
+                    const sortedItems = Object.entries(itemCounts).sort(([,a],[,b]) => b-a).slice(0, 5);
+                    setTopServices(sortedItems);
+
+                    setRecentInvoices(invoices.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)).slice(0, 5));
+
+                    setLoading(false);
                 };
 
                 fetchAllData();
 
-            }, [userId, userRole, appId]);
+            }, [user, appId]);
 
             const maxRevenue = React.useMemo(() => Math.max(...revenueData.map(d => d.revenue), 1), [revenueData]);
 
@@ -1231,17 +1192,11 @@
             const [loading, setLoading] = React.useState(true);
             const [selectedInvoice, setSelectedInvoice] = React.useState(null);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
-            const userId = user.uid;
 
             React.useEffect(() => {
-                if (!userId || !db) { setLoading(false); return; }
+                if (!user || !db) { setLoading(false); return; }
                 setLoading(true);
-                let q;
-                if (userRole === 'admin') {
-                    q = db.collectionGroup('invoices').orderBy("createdAt", "desc");
-                } else {
-                    q = db.collection(`artifacts/${appId}/users/${userId}/invoices`).orderBy("createdAt", "desc");
-                }
+                const q = db.collection(`artifacts/${appId}/public/data/invoices`).orderBy("createdAt", "desc");
                 const unsubscribe = q.onSnapshot((snapshot) => {
                     setInvoices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                     setLoading(false);
@@ -1250,7 +1205,7 @@
                     setLoading(false);
                 });
                 return () => unsubscribe();
-            }, [userId, userRole, appId]);
+            }, [user, appId]);
 
             return (
                 <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full">
@@ -1427,14 +1382,13 @@
             const [logs, setLogs] = React.useState([]);
             const [loading, setLoading] = React.useState(true);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
-            const userId = user.uid;
 
             React.useEffect(() => {
                 if (userRole !== 'admin') {
                     setLoading(false);
                     return;
                 }
-                const unsubscribe = db.collectionGroup('audit_logs')
+                const unsubscribe = db.collection(`artifacts/${appId}/public/data/audit_logs`)
                     .orderBy("timestamp", "desc")
                     .limit(200)
                     .onSnapshot(snapshot => {
@@ -1445,7 +1399,7 @@
                         setLoading(false);
                     });
                 return () => unsubscribe();
-            }, [userId, userRole, appId]);
+            }, [user, userRole, appId]);
 
             if (userRole !== 'admin') {
                 return <div className="p-8 text-center"><h1 className="text-2xl font-bold text-red-600">Truy cập bị từ chối</h1><p className="text-gray-600 mt-2">Bạn không có quyền xem trang này.</p></div>;
@@ -1486,42 +1440,12 @@
             const [activePage, setActivePage] = React.useState('reports');
             const [user, setUser] = React.useState(null);
             const [userRole, setUserRole] = React.useState(null); // 'admin' or 'user'
-            const [authLoading, setAuthLoading] = React.useState(true);
+            const [authReady, setAuthReady] = React.useState(false);
             const [isSidebarOpen, setSidebarOpen] = React.useState(false);
-            const [migrationStatus, setMigrationStatus] = React.useState('idle');
-
-            const migrateOldData = async () => {
-                if (!user || !db) return;
-                setMigrationStatus('migrating');
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const userId = user.uid;
-                const collectionsToMigrate = ['repairOrders', 'customers', 'inventoryParts', 'services', 'invoices', 'audit_logs'];
-                
-                try {
-                    for (const collectionName of collectionsToMigrate) {
-                        const oldCollectionRef = db.collection(`artifacts/${appId}/public/data/${collectionName}`);
-                        const snapshot = await oldCollectionRef.get();
-                        if (snapshot.empty) continue;
-
-                        const batch = db.batch();
-                        snapshot.docs.forEach(doc => {
-                            const newDocRef = db.collection(`artifacts/${appId}/users/${userId}/${collectionName}`).doc(doc.id);
-                            batch.set(newDocRef, doc.data());
-                        });
-                        await batch.commit();
-                    }
-                    setMigrationStatus('success');
-                    alert("Chuyển dữ liệu cũ thành công!");
-                } catch (e) {
-                    console.error("Lỗi khi chuyển dữ liệu:", e);
-                    setMigrationStatus('error');
-                    alert("Đã xảy ra lỗi khi chuyển dữ liệu. Vui lòng kiểm tra console.");
-                }
-            };
 
             React.useEffect(() => {
                 if (!auth) { 
-                    setAuthLoading(true); 
+                    setAuthReady(true); 
                     return; 
                 }
                 const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -1540,10 +1464,12 @@
                         setUser(null);
                         setUserRole(null);
                     }
-                    setAuthLoading(false);
+                    if (!authReady) {
+                        setAuthReady(true);
+                    }
                 });
                 return () => unsubscribe();
-            }, []);
+            }, [authReady]);
 
             const handleLogout = () => {
                 auth.signOut();
@@ -1573,7 +1499,7 @@
                 );
             }
 
-            if (authLoading) { 
+            if (!authReady) { 
                 return (<div className="flex justify-center items-center h-screen w-screen"><p className="text-lg">Đang khởi tạo...</p></div>); 
             }
 
@@ -1597,20 +1523,6 @@
                            <h2 className="font-bold text-lg">RepairShop Pro</h2>
                            <button onClick={() => setSidebarOpen(true)}><MenuIcon /></button>
                         </div>
-                         {userRole === 'admin' && migrationStatus !== 'success' && (
-                            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 m-4" role="alert">
-                                <p className="font-bold">Chuyển dữ liệu cũ</p>
-                                <p>Dữ liệu của bạn cần được chuyển sang cấu trúc mới để hỗ trợ nhiều người dùng. Nhấn nút dưới đây để bắt đầu.</p>
-                                <button 
-                                    onClick={migrateOldData} 
-                                    disabled={migrationStatus === 'migrating'}
-                                    className="mt-2 px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:bg-yellow-300"
-                                >
-                                    {migrationStatus === 'migrating' ? 'Đang chuyển...' : 'Chuyển dữ liệu cũ'}
-                                </button>
-                                {migrationStatus === 'error' && <p className="text-red-500 mt-2">Có lỗi xảy ra, vui lòng thử lại.</p>}
-                            </div>
-                        )}
                         {renderPage()}
                     </main>
                 </div>
