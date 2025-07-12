@@ -82,6 +82,16 @@
                 app = firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
                 auth = firebase.auth();
+                
+                // Kích hoạt tính năng offline
+                db.enablePersistence().catch((err) => {
+                    if (err.code == 'failed-precondition') {
+                        console.warn("Firebase: Multiple tabs open, persistence can only be enabled in one tab at a time.");
+                    } else if (err.code == 'unimplemented') {
+                        console.warn("Firebase: The current browser does not support all of the features required to enable persistence.");
+                    }
+                });
+
                 isFirebaseInitialized = true;
             }
         } catch (e) { 
@@ -113,8 +123,9 @@
                 return;
             }
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const userId = user.uid;
             try {
-                await db.collection(`artifacts/${appId}/public/data/audit_logs`).add({
+                await db.collection(`artifacts/${appId}/users/${userId}/audit_logs`).add({
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     userEmail: user.email,
                     action: action,
@@ -423,16 +434,17 @@
             const [services, setServices] = React.useState([]);
             const [paymentMethod, setPaymentMethod] = React.useState('Tiền mặt');
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+            const userId = user.uid;
 
             React.useEffect(() => {
                 if (isOpen) {
                     // Fetch parts and services to populate dropdowns
                     const fetchPartsAndServices = async () => {
                         try {
-                            const partsSnapshot = await db.collection(`artifacts/${appId}/public/data/inventoryParts`).get();
+                            const partsSnapshot = await db.collection(`artifacts/${appId}/users/${userId}/inventoryParts`).get();
                             setParts(partsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-                            const servicesSnapshot = await db.collection(`artifacts/${appId}/public/data/services`).get();
+                            const servicesSnapshot = await db.collection(`artifacts/${appId}/users/${userId}/services`).get();
                             setServices(servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                         } catch(e) {
                             console.error("Lỗi tải linh kiện/dịch vụ cho hóa đơn:", e);
@@ -446,7 +458,7 @@
                         setItems([]);
                     }
                 }
-            }, [isOpen, order, appId]);
+            }, [isOpen, order, appId, userId]);
 
             const handleAddItem = () => {
                 setItems([...items, { id: `item-${Date.now()}`, name: '', quantity: 1, price: 0 }]);
@@ -490,8 +502,8 @@
                 };
 
                 try {
-                    const invoiceRef = await db.collection(`artifacts/${appId}/public/data/invoices`).add(invoiceData);
-                    await db.collection(`artifacts/${appId}/public/data/repairOrders`).doc(order.id).update({ status: 'Đã trả khách' });
+                    const invoiceRef = await db.collection(`artifacts/${appId}/users/${userId}/invoices`).add(invoiceData);
+                    await db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).doc(order.id).update({ status: 'Đã trả khách' });
                     await logAction(user, 'create', 'Hóa đơn', `Tạo hóa đơn #${invoiceRef.id.slice(0,6)} cho phiếu #${order.id.slice(0,6)}.`, invoiceRef.id);
                     onInvoiceSaved({ ...invoiceData, id: invoiceRef.id, createdAt: new Date() }, order);
                 } catch (e) {
@@ -580,17 +592,23 @@
             const [filterStatus, setFilterStatus] = React.useState('Tất cả');
             const repairStatuses = React.useMemo(() => ["Mới nhận", "Đang kiểm tra", "Chờ báo giá", "Chờ linh kiện", "Đang sửa", "Sửa xong, chờ QC", "Sẵn sàng trả khách", "Đã trả khách","Báo giá không sửa"], []);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+            const userId = user.uid;
 
             React.useEffect(() => {
-                if (!user || !db) { setLoading(false); return; }
+                if (!userId || !db) { setLoading(false); return; }
                 setLoading(true);
-                const q = db.collection(`artifacts/${appId}/public/data/repairOrders`).orderBy("createdAt", "desc");
-                const unsubscribe = q.onSnapshot((snapshot) => { setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi: ", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
+                let q;
+                if (userRole === 'admin') {
+                    q = db.collectionGroup('repairOrders').orderBy("createdAt", "desc");
+                } else {
+                    q = db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).orderBy("createdAt", "desc");
+                }
+                const unsubscribe = q.onSnapshot((snapshot) => { setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi: ", err); setError("Lỗi tải dữ liệu. Nếu bạn là admin, vui lòng nhấn vào đường link trong console để tạo chỉ mục cần thiết."); setLoading(false); });
                 return () => unsubscribe();
-            }, [user, appId]);
+            }, [userId, userRole, appId]);
             
             const handleSaveOrder = React.useCallback(async (orderData) => {
-                if (!user || !db) return;
+                if (!userId || !db) return;
                 const { id, ...dataToSave } = orderData;
                 
                 if (dataToSave.deviceType === 'Khác') {
@@ -600,23 +618,23 @@
 
                 try {
                     if (id) {
-                        await db.collection(`artifacts/${appId}/public/data/repairOrders`).doc(id).update(dataToSave);
+                        await db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).doc(id).update(dataToSave);
                         await logAction(user, 'update', 'Phiếu Sửa Chữa', `Cập nhật phiếu #${id.slice(0,6)} cho khách hàng ${dataToSave.customerName}.`, id);
                     } else {
-                        const orderRef = await db.collection(`artifacts/${appId}/public/data/repairOrders`).add({ ...dataToSave, status: 'Mới nhận', createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: user.uid });
+                        const orderRef = await db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).add({ ...dataToSave, status: 'Mới nhận', createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: user.uid });
                         await orderRef.update({ orderId: orderRef.id });
                         setReceiptToPrint({ ...dataToSave, id: orderRef.id, createdAt: new Date() });
                         await logAction(user, 'create', 'Phiếu Sửa Chữa', `Tạo mới phiếu cho khách hàng ${dataToSave.customerName}.`, orderRef.id);
                     }
-                    const customerDocRef = db.collection(`artifacts/${appId}/public/data/customers`).doc(dataToSave.customerPhone);
+                    const customerDocRef = db.collection(`artifacts/${appId}/users/${userId}/customers`).doc(dataToSave.customerPhone);
                     await customerDocRef.set({ customerName: dataToSave.customerName, customerPhone: dataToSave.customerPhone, customerAddress: dataToSave.customerAddress, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
 
                 } catch (e) { console.error("Lỗi: ", e); alert("Lỗi khi lưu."); }
-            }, [user, appId]);
+            }, [userId, user, appId]);
             
             const handleStatusChange = React.useCallback(async (orderId, newStatus) => {
-                if (!user || !db) return;
-                const docRef = db.collection(`artifacts/${appId}/public/data/repairOrders`).doc(orderId);
+                if (!userId || !db) return;
+                const docRef = db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).doc(orderId);
                 try {
                     const oldDoc = await docRef.get();
                     if (oldDoc.exists) {
@@ -625,7 +643,7 @@
                         await logAction(user, 'status_change', 'Phiếu Sửa Chữa', `Đổi trạng thái phiếu #${orderId.slice(0,6)} từ '${oldStatus}' sang '${newStatus}'.`, orderId);
                     }
                 } catch(e) { console.error("Lỗi:", e); alert("Lỗi cập nhật."); }
-            }, [user, appId]);
+            }, [userId, user, appId]);
 
             const handleOpenInvoiceModal = (order) => { setSelectedOrderForInvoice(order); setIsInvoiceModalOpen(true); }
             const handleOpenEditModal = (order) => { setEditingOrder(order); setIsModalOpen(true); }
@@ -655,20 +673,62 @@
                     </div>
                     <div className="mb-4"><label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo trạng thái:</label><select id="statusFilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={inputStyle + ' max-w-xs'}><option>Tất cả</option>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select></div>
                     {loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (
-                        <div className="bg-white rounded-lg shadow">
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã Phiếu</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách Hàng</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thiết Bị</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vấn Đề</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày Nhận</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá Dự Kiến</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th><th scope="col" className="relative px-6 py-3"></th></tr></thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">{filteredOrders.length > 0 ? filteredOrders.map(order => (<tr key={order.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-600">#{order.id.slice(0,6)}</td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{order.customerName}</div><div className="text-sm text-gray-500">{order.customerPhone}</div></td><td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{order.deviceModel}</div><div className="text-sm text-gray-500">{order.deviceType}</div></td><td className="px-6 py-4 max-w-xs whitespace-normal"><p className="text-sm text-gray-900 truncate">{order.reportedProblem}</p></td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{(order.estimatedCost || 0).toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap"><div className="flex items-center gap-2"><select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)} className={`text-xs font-semibold rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-offset-1 ${getStatusColor(order.status)}`} style={{appearance: 'none', WebkitAppearance: 'none'}}>{repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>{order.isWarranty && <span title="Phiếu bảo hành" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800"><WarrantyIcon/></span>}</div></td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2"><button onClick={() => setReceiptToPrint(order)} className="text-gray-500 hover:text-gray-800" title="In Phiếu hẹn"><PrintIcon /></button>
-                                        {userRole === 'admin' && (
-                                            <>
-                                                <button onClick={() => handleOpenEditModal(order)} className="text-indigo-600 hover:text-indigo-900"><EditIcon /></button>
-                                                {order.status === 'Sẵn sàng trả khách' && (<button onClick={() => handleOpenInvoiceModal(order)} className="text-green-600 hover:text-green-900">Tạo Hóa đơn</button>)}
-                                            </>
-                                        )}
-                                        </td></tr>)) : (<tr><td colSpan="8" className="px-6 py-4 text-center text-gray-500">Không có phiếu sửa chữa nào.</td></tr>)}</tbody>
-                                </table>
-                            </div>
+                        <div className="bg-white rounded-lg shadow overflow-x-auto">
+                            <table className="w-full table-fixed divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" className="w-[8%] px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã Phiếu</th>
+                                        <th scope="col" className="w-[15%] px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách Hàng</th>
+                                        <th scope="col" className="w-[15%] px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thiết Bị</th>
+                                        <th scope="col" className="w-[20%] px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vấn Đề</th>
+                                        <th scope="col" className="w-[10%] px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày Nhận</th>
+                                        <th scope="col" className="w-[10%] px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá Dự Kiến</th>
+                                        <th scope="col" className="w-[12%] px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th>
+                                        <th scope="col" className="w-[10%] relative px-2 py-3"><span className="sr-only">Hành động</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {filteredOrders.length > 0 ? filteredOrders.map(order => (
+                                        <tr key={order.id} className="hover:bg-gray-50">
+                                            <td className="px-2 py-2 whitespace-nowrap text-sm font-mono text-slate-600">#{order.id.slice(0,6)}</td>
+                                            <td className="px-2 py-2">
+                                                <div className="text-sm font-medium text-gray-900 truncate" title={order.customerName}>{order.customerName}</div>
+                                                <div className="text-sm text-gray-500">{order.customerPhone}</div>
+                                            </td>
+                                            <td className="px-2 py-2">
+                                                <div className="text-sm text-gray-900 truncate" title={order.deviceModel}>{order.deviceModel}</div>
+                                                <div className="text-sm text-gray-500 truncate">{order.deviceType}</div>
+                                            </td>
+                                            <td className="px-2 py-2">
+                                                <p className="text-sm text-gray-900 truncate" title={order.reportedProblem}>{order.reportedProblem}</p>
+                                            </td>
+                                            <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500">{order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td>
+                                            <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500">{(order.estimatedCost || 0).toLocaleString('vi-VN')} đ</td>
+                                            <td className="px-2 py-2 whitespace-nowrap">
+                                                <div className="flex items-center gap-1">
+                                                    <select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)} className={`text-xs font-semibold rounded-full px-2 py-1 border-0 focus:ring-2 focus:ring-offset-1 ${getStatusColor(order.status)}`} style={{appearance: 'none', WebkitAppearance: 'none'}}>
+                                                        {repairStatuses.map(status => <option key={status} value={status}>{status}</option>)}
+                                                    </select>
+                                                    {order.isWarranty && <span title="Phiếu bảo hành"><WarrantyIcon/></span>}
+                                                </div>
+                                            </td>
+                                            <td className="px-2 py-2 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex items-center justify-end space-x-2">
+                                                    <button onClick={() => setReceiptToPrint(order)} className="text-gray-500 hover:text-gray-800" title="In Phiếu hẹn"><PrintIcon /></button>
+                                                    {userRole === 'admin' && (
+                                                        <>
+                                                            <button onClick={() => handleOpenEditModal(order)} className="text-indigo-600 hover:text-indigo-900" title="Chỉnh sửa"><EditIcon /></button>
+                                                            {order.status === 'Sẵn sàng trả khách' && (
+                                                                <button onClick={() => handleOpenInvoiceModal(order)} className="text-green-600 hover:text-green-900" title="Tạo Hóa đơn"><InvoiceIcon className="h-5 w-5"/></button>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )) : (<tr><td colSpan="8" className="px-6 py-4 text-center text-gray-500">Không có phiếu sửa chữa nào.</td></tr>)}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                     {userRole === 'admin' && <NewOrderModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveOrder} orderToEdit={editingOrder} />}
@@ -679,13 +739,13 @@
             );
         };
 
-        const CustomerHistoryModal = ({ isOpen, onClose, customer }) => {
+        const CustomerHistoryModal = ({ isOpen, onClose, customer, userId }) => {
             const [orders, setOrders] = React.useState([]); const [loading, setLoading] = React.useState(false);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
             React.useEffect(() => {
-                if (!isOpen || !customer || !db) { setOrders([]); return; }
+                if (!isOpen || !customer || !db || !userId) { setOrders([]); return; }
                 setLoading(true);
-                const q = db.collection(`artifacts/${appId}/public/data/repairOrders`).where("customerPhone", "==", customer.customerPhone);
+                const q = db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).where("customerPhone", "==", customer.customerPhone);
                 const getHistory = async () => { 
                     try { 
                         const querySnapshot = await q.get(); 
@@ -699,7 +759,7 @@
                     } 
                 };
                 getHistory();
-            }, [isOpen, customer, appId]);
+            }, [isOpen, customer, userId, appId]);
             if (!isOpen) return null;
             return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"><div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"><div className="flex justify-between items-center p-4 border-b"><h2 className="text-xl font-bold text-gray-800">Lịch sử sửa chữa: {customer.customerName}</h2><button onClick={onClose} className="text-gray-500 hover:text-gray-800"><CloseIcon /></button></div><div className="p-6 overflow-y-auto">{loading ? <p>Đang tải...</p> : ( orders.length > 0 ? ( <ul className="space-y-4">{orders.map(order => ( <li key={order.id} className="p-4 border rounded-md bg-gray-50"><p><strong>Ngày nhận:</strong> {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'}</p><p><strong>Thiết bị:</strong> {order.deviceType} - {order.deviceModel} ({order.deviceSerial})</p><p><strong>Vấn đề:</strong> {order.reportedProblem}</p><p><strong>Trạng thái:</strong> {order.status}</p></li> ))}</ul> ) : <p>Không có lịch sử.</p> )}</div></div></div> );
         };
@@ -707,12 +767,18 @@
         const CustomersPage = ({ user, userRole }) => {
             const [customers, setCustomers] = React.useState([]); const [loading, setLoading] = React.useState(true); const [error, setError] = React.useState(null); const [searchTerm, setSearchTerm] = React.useState(""); const [selectedCustomer, setSelectedCustomer] = React.useState(null); const [isHistoryModalOpen, setIsHistoryModalOpen] = React.useState(false);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+            const userId = user.uid;
             React.useEffect(() => {
-                if (!user || !db) { setLoading(false); return; } setLoading(true);
-                const q = db.collection(`artifacts/${appId}/public/data/customers`).orderBy("lastSeen", "desc");
+                if (!userId || !db) { setLoading(false); return; } setLoading(true);
+                let q;
+                if (userRole === 'admin') {
+                    q = db.collectionGroup('customers').orderBy("lastSeen", "desc");
+                } else {
+                    q = db.collection(`artifacts/${appId}/users/${userId}/customers`).orderBy("lastSeen", "desc");
+                }
                 const unsubscribe = q.onSnapshot((snapshot) => { setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
                 return () => unsubscribe();
-            }, [user, appId]);
+            }, [userId, userRole, appId]);
             const handleViewHistory = (customer) => { setSelectedCustomer(customer); setIsHistoryModalOpen(true); };
             const filteredCustomers = React.useMemo(() => customers.filter(c => c.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) || c.customerPhone?.includes(searchTerm)), [customers, searchTerm]);
             return ( <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full"><div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"><h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Khách hàng</h1>
@@ -721,12 +787,10 @@
             )}
             </div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm khách hàng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>
             {loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (
-            <div className="bg-white rounded-lg shadow">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SĐT</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa Chỉ</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lần cuối ghé</th><th scope="col" className="relative px-6 py-3"><span className="sr-only">Hành động</span></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredCustomers.length > 0 ? filteredCustomers.map(customer => (<tr key={customer.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{customer.customerName}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerPhone}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerAddress || 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.lastSeen?.toDate ? customer.lastSeen.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button onClick={() => handleViewHistory(customer)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center gap-1"><HistoryIcon /> Xem Lịch sử</button></td></tr>)) : (<tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Không tìm thấy khách hàng.</td></tr>)}</tbody></table>
-                </div>
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
+                <table className="w-full table-fixed divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="w-1/4 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th><th scope="col" className="w-1/5 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SĐT</th><th scope="col" className="w-[30%] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa Chỉ</th><th scope="col" className="w-[15%] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lần cuối ghé</th><th scope="col" className="w-[10%] relative px-4 py-3"><span className="sr-only">Hành động</span></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredCustomers.length > 0 ? filteredCustomers.map(customer => (<tr key={customer.id} className="hover:bg-gray-50"><td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate" title={customer.customerName}>{customer.customerName}</td><td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerPhone}</td><td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 truncate" title={customer.customerAddress}>{customer.customerAddress || 'N/A'}</td><td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{customer.lastSeen?.toDate ? customer.lastSeen.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button onClick={() => handleViewHistory(customer)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center gap-1"><HistoryIcon /> </button></td></tr>)) : (<tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Không tìm thấy khách hàng.</td></tr>)}</tbody></table>
             </div>
-            )}<CustomerHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} customer={selectedCustomer} /></div> );
+            )}<CustomerHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} customer={selectedCustomer} userId={userId} /></div> );
         };
 
         const PartFormModal = ({ isOpen, onClose, onSave, part }) => {
@@ -826,31 +890,37 @@
             const [isPrintModalOpen, setIsPrintModalOpen] = React.useState(false);
             const [confirmDelete, setConfirmDelete] = React.useState(null);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+            const userId = user.uid;
             
             React.useEffect(() => {
-                if (!user || !db) { setLoading(false); return; } setLoading(true);
-                const q = db.collection(`artifacts/${appId}/public/data/inventoryParts`).orderBy("partName");
+                if (!userId || !db) { setLoading(false); return; } setLoading(true);
+                let q;
+                if (userRole === 'admin') {
+                    q = db.collectionGroup('inventoryParts').orderBy("partName");
+                } else {
+                    q = db.collection(`artifacts/${appId}/users/${userId}/inventoryParts`).orderBy("partName");
+                }
                 const unsubscribe = q.onSnapshot((snapshot) => { setParts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
                 return () => unsubscribe();
-            }, [user, appId]);
+            }, [userId, userRole, appId]);
 
             const handleSavePart = React.useCallback(async (partData) => {
-                if (!user || !db) return;
+                if (!userId || !db) return;
                 const { id, ...dataToSave } = partData;
                 try {
                     if (id) { 
-                        await db.collection(`artifacts/${appId}/public/data/inventoryParts`).doc(id).update(dataToSave); 
+                        await db.collection(`artifacts/${appId}/users/${userId}/inventoryParts`).doc(id).update(dataToSave); 
                         await logAction(user, 'update', 'Linh kiện', `Cập nhật linh kiện '${dataToSave.partName}'.`, id);
                     } else { 
-                        const newRef = await db.collection(`artifacts/${appId}/public/data/inventoryParts`).add(dataToSave); 
+                        const newRef = await db.collection(`artifacts/${appId}/users/${userId}/inventoryParts`).add(dataToSave); 
                         await logAction(user, 'create', 'Linh kiện', `Tạo mới linh kiện '${dataToSave.partName}'.`, newRef.id);
                     }
                 } catch (e) { console.error("Lỗi:", e); }
-            }, [user, appId]);
+            }, [userId, user, appId]);
             
             const handleDeletePart = React.useCallback(async (partId) => {
-                if (!user || !db || !partId) return;
-                const docRef = db.collection(`artifacts/${appId}/public/data/inventoryParts`).doc(partId);
+                if (!userId || !db || !partId) return;
+                const docRef = db.collection(`artifacts/${appId}/users/${userId}/inventoryParts`).doc(partId);
                 try { 
                     const doc = await docRef.get();
                     if(doc.exists) {
@@ -861,7 +931,7 @@
                     setConfirmDelete(null);
                 } 
                 catch (e) { console.error("Lỗi:", e); }
-            }, [user, appId]);
+            }, [userId, user, appId]);
             
             const openModalToAdd = () => { setEditingPart(null); setIsModalOpen(true); };
             const openModalToEdit = (part) => { setEditingPart(part); setIsModalOpen(true); };
@@ -877,9 +947,8 @@
             )}
             </div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm linh kiện..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>
             {loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (
-            <div className="bg-white rounded-lg shadow">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Linh kiện</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Vị trí</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tồn kho</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Nhập</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Bán</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredParts.length > 0 ? filteredParts.map(part => (<tr key={part.id} className={part.stockQuantity <= part.lowStockThreshold ? 'bg-yellow-50' : ''}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">{part.partName}{part.stockQuantity <= part.lowStockThreshold && <WarningIcon/>}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{part.location}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(part.stockQuantity || 0).toLocaleString('vi-VN')}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(part.importPrice || 0).toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(part.salePrice || 0).toLocaleString('vi-VN')} đ</td>
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Linh kiện</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Vị trí</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tồn kho</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Nhập</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá Bán</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredParts.length > 0 ? filteredParts.map(part => (<tr key={part.id} className={part.stockQuantity <= part.lowStockThreshold ? 'bg-yellow-50' : ''}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">{part.partName}{part.stockQuantity <= part.lowStockThreshold && <WarningIcon/>}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{part.location}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(part.stockQuantity || 0).toLocaleString('vi-VN')}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(part.importPrice || 0).toLocaleString('vi-VN')} đ</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(part.salePrice || 0).toLocaleString('vi-VN')} đ</td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
                 {userRole === 'admin' && (
                     <>
@@ -889,7 +958,6 @@
                 )}
             </td>
             </tr>)) : (<tr><td colSpan="6" className="px-6 py-4 text-center text-gray-500">Chưa có linh kiện nào.</td></tr>)}</tbody></table>
-                </div>
             </div>
             )}
             {userRole === 'admin' && <PartFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSavePart} part={editingPart} />}
@@ -926,31 +994,37 @@
             const [services, setServices] = React.useState([]); const [loading, setLoading] = React.useState(true); const [error, setError] = React.useState(null); const [isModalOpen, setIsModalOpen] = React.useState(false); const [editingService, setEditingService] = React.useState(null);
             const [confirmDelete, setConfirmDelete] = React.useState(null);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+            const userId = user.uid;
             
             React.useEffect(() => {
-                if (!user || !db) { setLoading(false); return; } setLoading(true);
-                const q = db.collection(`artifacts/${appId}/public/data/services`).orderBy("serviceName");
+                if (!userId || !db) { setLoading(false); return; } setLoading(true);
+                let q;
+                if (userRole === 'admin') {
+                    q = db.collectionGroup('services').orderBy("serviceName");
+                } else {
+                    q = db.collection(`artifacts/${appId}/users/${userId}/services`).orderBy("serviceName");
+                }
                 const unsubscribe = q.onSnapshot((snapshot) => { setServices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); }, (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); });
                 return () => unsubscribe();
-            }, [user, appId]);
+            }, [userId, userRole, appId]);
 
             const handleSaveService = React.useCallback(async (serviceData) => {
-                if (!user || !db) return;
+                if (!userId || !db) return;
                 const { id, ...dataToSave } = serviceData;
                 try {
                     if (id) { 
-                        await db.collection(`artifacts/${appId}/public/data/services`).doc(id).update(dataToSave); 
+                        await db.collection(`artifacts/${appId}/users/${userId}/services`).doc(id).update(dataToSave); 
                         await logAction(user, 'update', 'Dịch vụ', `Cập nhật dịch vụ '${dataToSave.serviceName}'.`, id);
                     } else { 
-                        const newRef = await db.collection(`artifacts/${appId}/public/data/services`).add(dataToSave); 
+                        const newRef = await db.collection(`artifacts/${appId}/users/${userId}/services`).add(dataToSave); 
                         await logAction(user, 'create', 'Dịch vụ', `Tạo mới dịch vụ '${dataToSave.serviceName}'.`, newRef.id);
                     }
                 } catch (e) { console.error("Lỗi:", e); }
-            }, [user, appId]);
+            }, [userId, user, appId]);
             
             const handleDeleteService = React.useCallback(async (serviceId) => {
-                if (!user || !db || !serviceId) return;
-                const docRef = db.collection(`artifacts/${appId}/public/data/services`).doc(serviceId);
+                if (!userId || !db || !serviceId) return;
+                const docRef = db.collection(`artifacts/${appId}/users/${userId}/services`).doc(serviceId);
                 try { 
                     const doc = await docRef.get();
                     if(doc.exists) {
@@ -961,7 +1035,7 @@
                     setConfirmDelete(null);
                 } 
                 catch (e) { console.error("Lỗi:", e); }
-            }, [user, appId]);
+            }, [userId, user, appId]);
             
             const openModalToAdd = () => { setEditingService(null); setIsModalOpen(true); };
             const openModalToEdit = (service) => { setEditingService(service); setIsModalOpen(true); };
@@ -972,9 +1046,8 @@
             )}
             </div>
             {loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (
-            <div className="bg-white rounded-lg shadow">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Dịch vụ</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tiền công</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{services.length > 0 ? services.map(service => (<tr key={service.id}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.serviceName}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(service.laborCost || 0).toLocaleString('vi-VN')} đ</td>
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên Dịch vụ</th><th className="px-6 py-3 text-left text-xs font-medium uppercase">Tiền công</th><th className="relative px-6 py-3"></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{services.length > 0 ? services.map(service => (<tr key={service.id}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.serviceName}</td><td className="px-6 py-4 whitespace-nowrap text-sm">{(service.laborCost || 0).toLocaleString('vi-VN')} đ</td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
                 {userRole === 'admin' && (
                     <>
@@ -984,7 +1057,6 @@
                 )}
             </td>
             </tr>)) : (<tr><td colSpan="3" className="px-6 py-4 text-center text-gray-500">Chưa có dịch vụ nào.</td></tr>)}</tbody></table>
-                </div>
             </div>
             )}
             {userRole === 'admin' && <ServiceFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveService} service={editingService} />}
@@ -1024,72 +1096,85 @@
             );
         }
 
-        const ReportsPage = ({ user }) => {
+        const ReportsPage = ({ user, userRole }) => {
             const [stats, setStats] = React.useState({ totalRevenue: 0, repairsCount: 0, newCustomers: 0 });
             const [revenueData, setRevenueData] = React.useState([]);
             const [topServices, setTopServices] = React.useState([]);
             const [recentInvoices, setRecentInvoices] = React.useState([]);
             const [loading, setLoading] = React.useState(true);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+            const userId = user.uid;
 
             React.useEffect(() => {
-                if (!user || !db) { setLoading(false); return; }
+                if (!userId || !db) { setLoading(false); return; }
 
                 const fetchAllData = async () => {
                     setLoading(true);
                     const today = new Date();
                     const last30Days = new Date(new Date().setDate(today.getDate() - 30));
 
-                    const invoicesQuery = db.collection(`artifacts/${appId}/public/data/invoices`).where('createdAt', '>=', last30Days);
-                    const repairOrdersQuery = db.collection(`artifacts/${appId}/public/data/repairOrders`).where('createdAt', '>=', last30Days);
-                    const customersQuery = db.collection(`artifacts/${appId}/public/data/customers`);
-                    
-                    const [invoicesSnapshot, ordersSnapshot, customersSnapshot] = await Promise.all([
-                        invoicesQuery.get(),
-                        repairOrdersQuery.get(),
-                        customersQuery.get()
-                    ]);
-                    
-                    const invoices = invoicesSnapshot.docs.map(d => ({...d.data(), id: d.id}));
-                    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
-                    const repairsCount = ordersSnapshot.size;
-                    const newCustomers = customersSnapshot.docs.filter(doc => doc.data().lastSeen?.toDate() >= last30Days).length;
-                    setStats({ totalRevenue, repairsCount, newCustomers });
+                    let invoicesQuery, repairOrdersQuery, customersQuery;
 
-                    const dailyRevenue = {};
-                    for(let i=0; i<30; i++) {
-                        const d = new Date();
-                        d.setDate(d.getDate() - i);
-                        dailyRevenue[d.toLocaleDateString('vi-VN')] = 0;
+                    if (userRole === 'admin') {
+                        invoicesQuery = db.collectionGroup('invoices').where('createdAt', '>=', last30Days);
+                        repairOrdersQuery = db.collectionGroup('repairOrders').where('createdAt', '>=', last30Days);
+                        customersQuery = db.collectionGroup('customers');
+                    } else {
+                        invoicesQuery = db.collection(`artifacts/${appId}/users/${userId}/invoices`).where('createdAt', '>=', last30Days);
+                        repairOrdersQuery = db.collection(`artifacts/${appId}/users/${userId}/repairOrders`).where('createdAt', '>=', last30Days);
+                        customersQuery = db.collection(`artifacts/${appId}/users/${userId}/customers`);
                     }
-                    invoices.forEach(inv => {
-                        if(inv.createdAt?.toDate) {
-                            const date = inv.createdAt.toDate().toLocaleDateString('vi-VN');
-                            if(dailyRevenue[date] !== undefined) {
-                                dailyRevenue[date] += (inv.total || 0);
-                            }
+                    
+                    try {
+                        const [invoicesSnapshot, ordersSnapshot, customersSnapshot] = await Promise.all([
+                            invoicesQuery.get(),
+                            repairOrdersQuery.get(),
+                            customersQuery.get()
+                        ]);
+                        
+                        const invoices = invoicesSnapshot.docs.map(d => ({...d.data(), id: d.id}));
+                        const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+                        const repairsCount = ordersSnapshot.size;
+                        const newCustomers = customersSnapshot.docs.filter(doc => doc.data().lastSeen?.toDate() >= last30Days).length;
+                        setStats({ totalRevenue, repairsCount, newCustomers });
+
+                        const dailyRevenue = {};
+                        for(let i=0; i<30; i++) {
+                            const d = new Date();
+                            d.setDate(d.getDate() - i);
+                            dailyRevenue[d.toLocaleDateString('vi-VN')] = 0;
                         }
-                    });
-                    const chartData = Object.entries(dailyRevenue).map(([date, revenue]) => ({date, revenue})).reverse();
-                    setRevenueData(chartData);
-
-                    const itemCounts = {};
-                    invoices.forEach(inv => {
-                        (inv.items || []).forEach(item => {
-                            itemCounts[item.name] = (itemCounts[item.name] || 0) + 1;
+                        invoices.forEach(inv => {
+                            if(inv.createdAt?.toDate) {
+                                const date = inv.createdAt.toDate().toLocaleDateString('vi-VN');
+                                if(dailyRevenue[date] !== undefined) {
+                                    dailyRevenue[date] += (inv.total || 0);
+                                }
+                            }
                         });
-                    });
-                    const sortedItems = Object.entries(itemCounts).sort(([,a],[,b]) => b-a).slice(0, 5);
-                    setTopServices(sortedItems);
+                        const chartData = Object.entries(dailyRevenue).map(([date, revenue]) => ({date, revenue})).reverse();
+                        setRevenueData(chartData);
 
-                    setRecentInvoices(invoices.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)).slice(0, 5));
+                        const itemCounts = {};
+                        invoices.forEach(inv => {
+                            (inv.items || []).forEach(item => {
+                                itemCounts[item.name] = (itemCounts[item.name] || 0) + 1;
+                            });
+                        });
+                        const sortedItems = Object.entries(itemCounts).sort(([,a],[,b]) => b-a).slice(0, 5);
+                        setTopServices(sortedItems);
 
-                    setLoading(false);
+                        setRecentInvoices(invoices.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)).slice(0, 5));
+                    } catch (e) {
+                        console.error("Lỗi khi tải báo cáo:", e);
+                    } finally {
+                        setLoading(false);
+                    }
                 };
 
                 fetchAllData();
 
-            }, [user, appId]);
+            }, [userId, userRole, appId]);
 
             const maxRevenue = React.useMemo(() => Math.max(...revenueData.map(d => d.revenue), 1), [revenueData]);
 
@@ -1146,11 +1231,17 @@
             const [loading, setLoading] = React.useState(true);
             const [selectedInvoice, setSelectedInvoice] = React.useState(null);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+            const userId = user.uid;
 
             React.useEffect(() => {
-                if (!user || !db) { setLoading(false); return; }
+                if (!userId || !db) { setLoading(false); return; }
                 setLoading(true);
-                const q = db.collection(`artifacts/${appId}/public/data/invoices`).orderBy("createdAt", "desc");
+                let q;
+                if (userRole === 'admin') {
+                    q = db.collectionGroup('invoices').orderBy("createdAt", "desc");
+                } else {
+                    q = db.collection(`artifacts/${appId}/users/${userId}/invoices`).orderBy("createdAt", "desc");
+                }
                 const unsubscribe = q.onSnapshot((snapshot) => {
                     setInvoices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                     setLoading(false);
@@ -1159,41 +1250,39 @@
                     setLoading(false);
                 });
                 return () => unsubscribe();
-            }, [user, appId]);
+            }, [userId, userRole, appId]);
 
             return (
                 <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Lịch sử Hóa đơn</h1>
                     {loading ? <p>Đang tải...</p> : (
-                        <div className="bg-white rounded-lg shadow">
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase">Ngày tạo</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase">Mã Hóa đơn</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase">Khách hàng</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase">Tổng tiền</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase">Thanh toán</th>
-                                            <th className="relative px-6 py-3"></th>
+                        <div className="bg-white rounded-lg shadow overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">Ngày tạo</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">Mã Hóa đơn</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">Khách hàng</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">Tổng tiền</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">Thanh toán</th>
+                                        <th className="relative px-6 py-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {invoices.map(invoice => (
+                                        <tr key={invoice.id}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">{invoice.createdAt?.toDate().toLocaleDateString('vi-VN')}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">#{invoice.id.slice(0,6).toUpperCase()}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">{invoice.customerName}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">{(invoice.total || 0).toLocaleString('vi-VN')} đ</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">{invoice.paymentMethod}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <button onClick={() => setSelectedInvoice(invoice)} className="text-indigo-600 hover:text-indigo-900">Xem & In</button>
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {invoices.map(invoice => (
-                                            <tr key={invoice.id}>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">{invoice.createdAt?.toDate().toLocaleDateString('vi-VN')}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">#{invoice.id.slice(0,6).toUpperCase()}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">{invoice.customerName}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">{(invoice.total || 0).toLocaleString('vi-VN')} đ</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">{invoice.paymentMethod}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <button onClick={() => setSelectedInvoice(invoice)} className="text-indigo-600 hover:text-indigo-900">Xem & In</button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                     {selectedInvoice && <PrintableInvoiceModal isOpen={!!selectedInvoice} onClose={() => setSelectedInvoice(null)} invoice={selectedInvoice} />}
@@ -1338,13 +1427,14 @@
             const [logs, setLogs] = React.useState([]);
             const [loading, setLoading] = React.useState(true);
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+            const userId = user.uid;
 
             React.useEffect(() => {
                 if (userRole !== 'admin') {
                     setLoading(false);
                     return;
                 }
-                const unsubscribe = db.collection(`artifacts/${appId}/public/data/audit_logs`)
+                const unsubscribe = db.collectionGroup('audit_logs')
                     .orderBy("timestamp", "desc")
                     .limit(200)
                     .onSnapshot(snapshot => {
@@ -1355,7 +1445,7 @@
                         setLoading(false);
                     });
                 return () => unsubscribe();
-            }, [user, userRole, appId]);
+            }, [userId, userRole, appId]);
 
             if (userRole !== 'admin') {
                 return <div className="p-8 text-center"><h1 className="text-2xl font-bold text-red-600">Truy cập bị từ chối</h1><p className="text-gray-600 mt-2">Bạn không có quyền xem trang này.</p></div>;
@@ -1365,29 +1455,27 @@
                 <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Nhật ký Hoạt động</h1>
                     {loading ? <p className="text-center py-10">Đang tải...</p> : (
-                        <div className="bg-white rounded-lg shadow">
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người dùng</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
+                        <div className="bg-white rounded-lg shadow overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người dùng</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {logs.length > 0 ? logs.map(log => (
+                                        <tr key={log.id}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{log.timestamp?.toDate().toLocaleString('vi-VN') || '...'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.userEmail}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-700">{log.details}</td>
                                         </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {logs.length > 0 ? logs.map(log => (
-                                            <tr key={log.id}>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{log.timestamp?.toDate().toLocaleString('vi-VN') || '...'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.userEmail}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-700">{log.details}</td>
-                                            </tr>
-                                        )) : (
-                                            <tr><td colSpan="3" className="px-6 py-4 text-center text-gray-500">Chưa có hoạt động nào được ghi lại.</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                    )) : (
+                                        <tr><td colSpan="3" className="px-6 py-4 text-center text-gray-500">Chưa có hoạt động nào được ghi lại.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </div>
@@ -1398,12 +1486,42 @@
             const [activePage, setActivePage] = React.useState('reports');
             const [user, setUser] = React.useState(null);
             const [userRole, setUserRole] = React.useState(null); // 'admin' or 'user'
-            const [authReady, setAuthReady] = React.useState(false);
+            const [authLoading, setAuthLoading] = React.useState(true);
             const [isSidebarOpen, setSidebarOpen] = React.useState(false);
+            const [migrationStatus, setMigrationStatus] = React.useState('idle');
+
+            const migrateOldData = async () => {
+                if (!user || !db) return;
+                setMigrationStatus('migrating');
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const userId = user.uid;
+                const collectionsToMigrate = ['repairOrders', 'customers', 'inventoryParts', 'services', 'invoices', 'audit_logs'];
+                
+                try {
+                    for (const collectionName of collectionsToMigrate) {
+                        const oldCollectionRef = db.collection(`artifacts/${appId}/public/data/${collectionName}`);
+                        const snapshot = await oldCollectionRef.get();
+                        if (snapshot.empty) continue;
+
+                        const batch = db.batch();
+                        snapshot.docs.forEach(doc => {
+                            const newDocRef = db.collection(`artifacts/${appId}/users/${userId}/${collectionName}`).doc(doc.id);
+                            batch.set(newDocRef, doc.data());
+                        });
+                        await batch.commit();
+                    }
+                    setMigrationStatus('success');
+                    alert("Chuyển dữ liệu cũ thành công!");
+                } catch (e) {
+                    console.error("Lỗi khi chuyển dữ liệu:", e);
+                    setMigrationStatus('error');
+                    alert("Đã xảy ra lỗi khi chuyển dữ liệu. Vui lòng kiểm tra console.");
+                }
+            };
 
             React.useEffect(() => {
                 if (!auth) { 
-                    setAuthReady(true); 
+                    setAuthLoading(true); 
                     return; 
                 }
                 const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -1422,12 +1540,10 @@
                         setUser(null);
                         setUserRole(null);
                     }
-                    if (!authReady) {
-                        setAuthReady(true);
-                    }
+                    setAuthLoading(false);
                 });
                 return () => unsubscribe();
-            }, [authReady]);
+            }, []);
 
             const handleLogout = () => {
                 auth.signOut();
@@ -1457,7 +1573,7 @@
                 );
             }
 
-            if (!authReady) { 
+            if (authLoading) { 
                 return (<div className="flex justify-center items-center h-screen w-screen"><p className="text-lg">Đang khởi tạo...</p></div>); 
             }
 
@@ -1481,6 +1597,20 @@
                            <h2 className="font-bold text-lg">RepairShop Pro</h2>
                            <button onClick={() => setSidebarOpen(true)}><MenuIcon /></button>
                         </div>
+                         {userRole === 'admin' && migrationStatus !== 'success' && (
+                            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 m-4" role="alert">
+                                <p className="font-bold">Chuyển dữ liệu cũ</p>
+                                <p>Dữ liệu của bạn cần được chuyển sang cấu trúc mới để hỗ trợ nhiều người dùng. Nhấn nút dưới đây để bắt đầu.</p>
+                                <button 
+                                    onClick={migrateOldData} 
+                                    disabled={migrationStatus === 'migrating'}
+                                    className="mt-2 px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:bg-yellow-300"
+                                >
+                                    {migrationStatus === 'migrating' ? 'Đang chuyển...' : 'Chuyển dữ liệu cũ'}
+                                </button>
+                                {migrationStatus === 'error' && <p className="text-red-500 mt-2">Có lỗi xảy ra, vui lòng thử lại.</p>}
+                            </div>
+                        )}
                         {renderPage()}
                     </main>
                 </div>
@@ -1497,4 +1627,3 @@
     </script>
 </body>
 </html>
-" selected. I'd like to make a change to my docume
