@@ -809,7 +809,7 @@
             {['admin', 'manager'].includes(userRole) && (
                 <button onClick={() => exportToCSV(customers.map(c => ({'TenKhachHang': c.customerName, 'SoDienThoai': c.customerPhone, 'DiaChi': c.customerAddress})), 'danh-sach-khach-hang.csv')} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700"><DownloadIcon />Xuất File</button>
             )}
-            </div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm khách hàng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SĐT</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa Chỉ</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lần cuối ghé</th><th scope="col" className="relative px-6 py-3"><span className="sr-only">Hành động</span></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredCustomers.length > 0 ? filteredCustomers.map(customer => (<tr key={customer.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{customer.customerName}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerPhone}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.customerAddress || 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.lastSeen?.toDate ? customer.lastSeen.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button onClick={() => handleViewHistory(customer)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center gap-1"><HistoryIcon /> Xem Lịch sử</button></td></tr>)) : (<tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Không tìm thấy khách hàng.</td></tr>)}</tbody></table></div>)}<CustomerHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} customer={selectedCustomer} /></div> );
+            </div><div className="mb-4"><div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><SearchIcon /></span><input type="text" placeholder="Tìm kiếm khách hàng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputStyle + " pl-10 max-w-sm"}/></div></div>{loading ? <p className="text-center py-10">Đang tải...</p> : error ? <p className="text-center py-10 text-red-500">{error}</p> : (<div className="bg-white rounded-lg shadow overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SĐT</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa Chỉ</th><th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lần cuối ghé</th><th scope="col" className="relative px-6 py-3"><span className="sr-only">Hành động</span></th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filteredCustomers.length > 0 ? filteredCustomers.map(c => (<tr key={c.id} className="hover:bg-gray-50"><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.customerName}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.customerPhone}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.customerAddress || 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.lastSeen?.toDate ? c.lastSeen.toDate().toLocaleDateString('vi-VN') : 'N/A'}</td><td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button onClick={() => handleViewHistory(c)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center gap-1"><HistoryIcon /> Xem Lịch sử</button></td></tr>)) : (<tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500">Không tìm thấy khách hàng.</td></tr>)}</tbody></table></div>)}<CustomerHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} customer={selectedCustomer} /></div> );
         };
 
         const PartFormModal = ({ isOpen, onClose, onSave, part }) => {
@@ -1270,11 +1270,13 @@
 
                 const fetchAllData = async () => {
                     setLoading(true);
-                    const today = new Date();
-                    const last30Days = new Date(new Date().setDate(today.getDate() - 30));
+                    
+                    const now = new Date();
+                    const oneYearAgo = new Date();
+                    oneYearAgo.setFullYear(now.getFullYear() - 1);
 
-                    const invoicesQuery = db.collection(`artifacts/${appId}/public/data/invoices`).where('createdAt', '>=', last30Days);
-                    const repairOrdersQuery = db.collection(`artifacts/${appId}/public/data/repairOrders`).where('createdAt', '>=', last30Days);
+                    const invoicesQuery = db.collection(`artifacts/${appId}/public/data/invoices`).where('createdAt', '>=', oneYearAgo);
+                    const repairOrdersQuery = db.collection(`artifacts/${appId}/public/data/repairOrders`).where('createdAt', '>=', oneYearAgo);
                     const customersQuery = db.collection(`artifacts/${appId}/public/data/customers`);
                     
                     const [invoicesSnapshot, ordersSnapshot, customersSnapshot] = await Promise.all([
@@ -1285,25 +1287,31 @@
                     
                     const invoices = invoicesSnapshot.docs.map(d => ({...d.data(), id: d.id}));
                     const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
-                    const repairsCount = ordersSnapshot.size;
-                    const newCustomers = customersSnapshot.docs.filter(doc => doc.data().lastSeen?.toDate() >= last30Days).length;
+                    
+                    const repairsInvoices = invoices.filter(inv => inv.orderId);
+                    const repairsCount = new Set(repairsInvoices.map(inv => inv.orderId)).size;
+                    
+                    const newCustomers = customersSnapshot.docs.filter(doc => doc.data().lastSeen?.toDate() >= oneYearAgo).length;
+                    
                     setStats({ totalRevenue, repairsCount, newCustomers });
 
-                    const dailyRevenue = {};
-                    for(let i=0; i<30; i++) {
-                        const d = new Date();
-                        d.setDate(d.getDate() - i);
-                        dailyRevenue[d.toLocaleDateString('vi-VN')] = 0;
+                    const monthlyRevenue = {};
+                    for(let i=11; i>=0; i--) {
+                        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                        monthlyRevenue[d.getFullYear() + '/' + (d.getMonth() + 1)] = 0;
                     }
+
                     invoices.forEach(inv => {
                         if(inv.createdAt?.toDate) {
-                            const date = inv.createdAt.toDate().toLocaleDateString('vi-VN');
-                            if(dailyRevenue[date] !== undefined) {
-                                dailyRevenue[date] += (inv.total || 0);
+                            const date = inv.createdAt.toDate();
+                            const monthKey = date.getFullYear() + '/' + (date.getMonth() + 1);
+                            if(monthlyRevenue[monthKey] !== undefined) {
+                                monthlyRevenue[monthKey] += (inv.total || 0);
                             }
                         }
                     });
-                    const chartData = Object.entries(dailyRevenue).map(([date, revenue]) => ({date, revenue})).reverse();
+
+                    const chartData = Object.entries(monthlyRevenue).map(([month, revenue]) => ({month, revenue}));
                     setRevenueData(chartData);
 
                     const itemCounts = {};
@@ -1336,19 +1344,19 @@
                 <div className="p-4 md:p-6 lg:p-8 bg-slate-100 min-h-full">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Báo cáo & Thống kê</h1>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        <div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Doanh thu (30 ngày)</h4><p className="text-3xl font-bold text-green-600">{(stats.totalRevenue || 0).toLocaleString('vi-VN')} đ</p></div>
-                        <div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Phiếu đã sửa (30 ngày)</h4><p className="text-3xl font-bold text-blue-600">{stats.repairsCount}</p></div>
-                        <div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Khách hàng mới (30 ngày)</h4><p className="text-3xl font-bold text-purple-600">{stats.newCustomers}</p></div>
+                        <div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Doanh thu (12 tháng)</h4><p className="text-3xl font-bold text-green-600">{(stats.totalRevenue || 0).toLocaleString('vi-VN')} đ</p></div>
+                        <div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Phiếu đã sửa (12 tháng)</h4><p className="text-3xl font-bold text-blue-600">{stats.repairsCount}</p></div>
+                        <div className="bg-white p-6 rounded-lg shadow"><h4 className="text-gray-500 text-sm font-medium">Khách hàng mới (12 tháng)</h4><p className="text-3xl font-bold text-purple-600">{stats.newCustomers}</p></div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow">
-                            <h4 className="font-semibold text-lg mb-4">Doanh thu 30 ngày qua</h4>
+                            <h4 className="font-semibold text-lg mb-4">Doanh thu 12 tháng qua</h4>
                             <div className="h-80 flex gap-1 items-end">
-                                {revenueData.map(({ date, revenue }) => (
-                                    <div key={date} className="flex-1 flex flex-col items-center group">
+                                {revenueData.map(({ month, revenue }) => (
+                                    <div key={month} className="flex-1 flex flex-col items-center group">
                                         <div className="w-full h-full bg-blue-200 rounded-t-md hover:bg-blue-400 transition-colors" style={{ height: `${(revenue / maxRevenue) * 100}%` }}></div>
-                                        <span className="text-xs text-gray-500 mt-1">{date.split('/')[0]}</span>
+                                        <span className="text-xs text-gray-500 mt-1">{month}</span>
                                         <div className="hidden group-hover:block absolute bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-16 pointer-events-none">{(revenue || 0).toLocaleString('vi-VN')} đ</div>
                                     </div>
                                 ))}
