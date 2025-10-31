@@ -728,34 +728,54 @@
             // Phát hiện gốc dữ liệu hiện có (public/data hoặc users/{uid})
             React.useEffect(() => {
                 const detect = async () => {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    // Fallback mặc định nếu không kiểm tra được
+                    const fallback = `artifacts/${appId}/public/data`;
                     try {
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                        if (!db) return;
-                        const publicCustomers = await db.collection(`artifacts/${appId}/public/data/customers`).limit(1).get();
-                        if (!publicCustomers.empty) {
-                            const root = `artifacts/${appId}/public/data`;
-                            setDataRoot(root);
-                            window.__data_root = root;
+                        if (!db) {
+                            setDataRoot(fallback);
+                            window.__data_root = fallback;
                             return;
                         }
-                        if (user && user.uid) {
-                            const userCustomers = await db.collection(`artifacts/${appId}/users/${user.uid}/customers`).limit(1).get();
-                            if (!userCustomers.empty) {
-                                const root = `artifacts/${appId}/users/${user.uid}`;
+                        // Thử public/data
+                        try {
+                            const publicCustomers = await db.collection(`artifacts/${appId}/public/data/customers`).limit(1).get();
+                            if (!publicCustomers.empty) {
+                                const root = `artifacts/${appId}/public/data`;
                                 setDataRoot(root);
                                 window.__data_root = root;
                                 return;
                             }
+                        } catch (e) {
+                            // Bỏ qua lỗi quyền/khác và thử nhánh kế tiếp
                         }
-                        const fallback = `artifacts/${appId}/public/data`;
+                        // Thử users/{uid}
+                        if (user && user.uid) {
+                            try {
+                                const userCustomers = await db.collection(`artifacts/${appId}/users/${user.uid}/customers`).limit(1).get();
+                                if (!userCustomers.empty) {
+                                    const root = `artifacts/${appId}/users/${user.uid}`;
+                                    setDataRoot(root);
+                                    window.__data_root = root;
+                                    return;
+                                }
+                            } catch (e) {
+                                // Bỏ qua
+                            }
+                        }
+                        // Không tìm thấy → dùng fallback
                         setDataRoot(fallback);
                         window.__data_root = fallback;
                     } catch (e) {
                         console.error('Lỗi phát hiện dataRoot:', e);
+                        setDataRoot(fallback);
+                        window.__data_root = fallback;
                     }
                 };
-                detect();
-            }, [user]);
+                if (isFirebaseInitialized && authReady) {
+                    detect();
+                }
+            }, [user, authReady, isFirebaseInitialized]);
 
             const handleLogout = () => auth.signOut();
             const renderPage = () => {
