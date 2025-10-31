@@ -379,7 +379,8 @@
             const [error, setError] = React.useState(null);
             const [searchTerm, setSearchTerm] = React.useState("");
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
-            
+            const dataRoot = React.useMemo(() => (typeof window !== 'undefined' && window.__data_root) ? window.__data_root : `artifacts/${appId}/public/data`, [appId]);
+
             React.useEffect(() => {
                 if (!user || !db) { setLoading(false); return; }
                 setLoading(true);
