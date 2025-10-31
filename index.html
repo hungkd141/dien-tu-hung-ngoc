@@ -2119,7 +2119,8 @@ function App() {
                     viewingAs, 
                     setViewingAs, 
                     allUsers, 
-                    currentUserId: user.uid 
+                    currentUserId: user.uid,
+                    appId
                 };
                 switch (activePage) {
                     case 'reports': return <ReportsPage {...props} />;
