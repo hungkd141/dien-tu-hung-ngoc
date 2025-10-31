@@ -1852,8 +1852,7 @@
                     { id: 'services', label: 'Dịch vụ', icon: <ServiceIcon />, roles: ['admin', 'manager'] },
                     { id: 'import', label: 'Nhập Dữ liệu', icon: <DownloadIcon />, roles: ['admin', 'manager'] },
                     { id: 'history', label: 'Nhật ký Hoạt động', icon: <AuditLogIcon />, roles: ['admin', 'manager'] },
-                                        { id: 'adminTools', label: 'Công cụ quản trị', icon: <AuditLogIcon />, roles: ['admin'] },
-{ id: 'users', label: 'Quản lý Người dùng', icon: <UsersIcon />, roles: ['admin'] }
+                    { id: 'users', label: 'Quản lý Người dùng', icon: <UsersIcon />, roles: ['admin'] }
                 ];
                 return allItems.filter(item => item.roles.includes(userRole));
             }, [userRole]);
@@ -1877,141 +1876,7 @@
             );
         }
         
-        
-        // --- ADMIN TOOLS PAGE ---
-        const AdminToolsPage = ({ user, userRole, addNotification, allUsers, currentUserId, appId }) => {
-            const [selectedUserId, setSelectedUserId] = React.useState(allUsers && allUsers.length ? allUsers[0].id : null);
-            const [cutoffDate, setCutoffDate] = React.useState('');
-            const [isProcessing, setIsProcessing] = React.useState(false);
-            const [confirmOpen, setConfirmOpen] = React.useState(false);
-            const [confirmAction, setConfirmAction] = React.useState(null);
-
-            React.useEffect(() => {
-                if (allUsers && allUsers.length && !selectedUserId) {
-                    setSelectedUserId(allUsers[0].id);
-                }
-            }, [allUsers]);
-
-            const resetAllData = async (targetUserId) => {
-                if (!db) { addNotification('DB không sẵn sàng', 'error'); return; }
-                if (!targetUserId) { addNotification('Vui lòng chọn người dùng mục tiêu.', 'error'); return; }
-                setIsProcessing(true);
-                try {
-                    const collections = ['repairOrders','invoices','customers','services','inventoryParts','audit_logs'];
-                    for (const col of collections) {
-                        const colRef = db.collection(`artifacts/${appId}/users/${targetUserId}/${col}`);
-                        const snapshot = await colRef.get();
-                        if (!snapshot.empty) {
-                            // delete in batches of 500
-                            let batch = db.batch();
-                            let counter = 0;
-                            snapshot.docs.forEach(doc => {
-                                batch.delete(doc.ref);
-                                counter++;
-                                if (counter === 400) {
-                                    batch.commit();
-                                    batch = db.batch();
-                                    counter = 0;
-                                }
-                            });
-                            await batch.commit();
-                        }
-                    }
-                    await logAction(user, 'admin_reset', 'AdminTools', `Admin ${user.email} reset dữ liệu user ${targetUserId}`, '');
-                    addNotification('Đã xóa toàn bộ dữ liệu cho người dùng được chọn.', 'success');
-                } catch (e) {
-                    console.error(e);
-                    addNotification('Lỗi khi xóa toàn bộ dữ liệu.', 'error');
-                } finally {
-                    setIsProcessing(false);
-                }
-            };
-
-            const deleteDataBeforeDate = async (targetUserId, dateStr) => {
-                if (!db) { addNotification('DB không sẵn sàng', 'error'); return; }
-                if (!targetUserId) { addNotification('Vui lòng chọn người dùng mục tiêu.', 'error'); return; }
-                if (!dateStr) { addNotification('Vui lòng chọn ngày cắt (cutoff date).', 'error'); return; }
-                setIsProcessing(true);
-                try {
-                    const cutoff = new Date(dateStr);
-                    const timestamp = firebase.firestore.Timestamp.fromDate(cutoff);
-                    const q = db.collection(`artifacts/${appId}/users/${targetUserId}/repairOrders`)
-                        .where('createdAt','<', timestamp);
-                    const snapshot = await q.get();
-                    if (snapshot.empty) {
-                        addNotification('Không có phiếu cũ hơn ngày chọn.', 'success');
-                        setIsProcessing(false);
-                        return;
-                    }
-                    // delete in batches
-                    let batch = db.batch();
-                    let counter = 0;
-                    snapshot.docs.forEach(doc => {
-                        batch.delete(doc.ref);
-                        counter++;
-                        if (counter === 400) {
-                            batch.commit();
-                            batch = db.batch();
-                            counter = 0;
-                        }
-                    });
-                    await batch.commit();
-                    await logAction(user, 'admin_delete_by_date', 'AdminTools', `Admin ${user.email} deleted ${snapshot.size} orders before ${dateStr} for user ${targetUserId}`, '');
-                    addNotification(`Đã xóa ${snapshot.size} phiếu sửa chữa trước ${dateStr}.`, 'success');
-                } catch (e) {
-                    console.error(e);
-                    addNotification('Lỗi khi xóa theo ngày.', 'error');
-                } finally {
-                    setIsProcessing(false);
-                }
-            };
-
-            const handleResetClick = () => {
-                setConfirmAction(() => () => resetAllData(selectedUserId));
-                setConfirmOpen(true);
-            };
-            const handleDeleteBeforeDateClick = () => {
-                setConfirmAction(() => () => deleteDataBeforeDate(selectedUserId, cutoffDate));
-                setConfirmOpen(true);
-            };
-
-            return (
-                <div className="p-6">
-                    <h1 className="text-2xl font-bold mb-4">🛠️ Công cụ quản trị</h1>
-                    <div className="bg-white rounded-lg shadow p-4 space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Chọn cửa hàng / user để thao tác</label>
-                            <select className="mt-1 block w-full rounded-md border-slate-300 py-2 px-3" value={selectedUserId || ''} onChange={(e) => setSelectedUserId(e.target.value)}>
-                                {allUsers && allUsers.length ? allUsers.map(u => <option key={u.id} value={u.id}>{u.email || u.id}</option>) : <option value=''>Không có user</option>}
-                            </select>
-                        </div>
-
-                        <div className="border-t pt-4">
-                            <h3 className="font-semibold">Xóa toàn bộ dữ liệu (Reset)</h3>
-                            <p className="text-sm text-gray-600">Hành động này sẽ xóa mọi dữ liệu của user được chọn. Không thể hoàn tác.</p>
-                            <div className="mt-3 flex gap-3">
-                                <button onClick={handleResetClick} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700" disabled={isProcessing || !selectedUserId}>Xóa toàn bộ dữ liệu</button>
-                                <button onClick={() => { setSelectedUserId(null); setCutoffDate(''); }} className="px-4 py-2 bg-gray-200 rounded-md">Reset lựa chọn</button>
-                            </div>
-                        </div>
-
-                        <div className="border-t pt-4">
-                            <h3 className="font-semibold">Xóa dữ liệu theo ngày</h3>
-                            <p className="text-sm text-gray-600">Chọn ngày (inclusive). Các phiếu có createdAt < ngày này sẽ bị xóa.</p>
-                            <div className="mt-3 flex items-center gap-3">
-                                <input type="date" value={cutoffDate} onChange={(e)=>setCutoffDate(e.target.value)} className="px-3 py-2 border rounded-md" />
-                                <button onClick={handleDeleteBeforeDateClick} className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600" disabled={isProcessing || !selectedUserId || !cutoffDate}>Xóa phiếu trước ngày</button>
-                            </div>
-                        </div>
-
-                        {isProcessing && <p className="text-sm text-gray-500">Đang xử lý...</p>}
-                    </div>
-
-                    <ConfirmModal isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} title="Xác nhận hành động" message="Bạn chắc chắn muốn thực hiện thao tác này? Hành động không thể hoàn tác." onConfirm={() => { setConfirmOpen(false); if (confirmAction) { confirmAction(); } }} />
-                </div>
-            );
-        };
-function App() {
+        function App() {
             const [activePage, setActivePage] = React.useState('');
             const [user, setUser] = React.useState(null);
             const [userRole, setUserRole] = React.useState(null);
@@ -2093,7 +1958,6 @@ function App() {
                         { id: 'services', roles: ['admin', 'manager'] },
                         { id: 'import', roles: ['admin', 'manager'] },
                         { id: 'history', roles: ['admin', 'manager'] },
-                        { id: 'adminTools', roles: ['admin'] },
                         { id: 'users', roles: ['admin'] }
                     ];
                     const firstAvailablePage = navItemsDefinition.find(item => item.roles.includes(userRole));
@@ -2132,7 +1996,6 @@ function App() {
                     case 'import': return <DataImportPage {...props} />;
                     case 'history': return <AuditLogPage {...props} />;
                     case 'users': return <UserManagementPage {...props} />;
-                    case 'adminTools': return <AdminToolsPage {...props} />;
                     default: return <div className="p-8">Trang không tồn tại</div>;
                 }
             };
