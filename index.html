@@ -104,7 +104,10 @@
             }
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
             try {
-                await db.collection(`artifacts/${appId}/public/data/audit_logs`).add({
+                const dataRoot = (typeof window !== 'undefined' && window.__data_root)
+                    ? window.__data_root
+                    : `artifacts/${appId}/public/data`;
+                await db.collection(`${dataRoot}/audit_logs`).add({
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     userEmail: user.email,
                     action: action,
@@ -311,11 +314,12 @@
             const [filterStatus, setFilterStatus] = React.useState('Tất cả');
             const repairStatuses = ["Mới nhận", "Đang kiểm tra", "Chờ báo giá", "Chờ linh kiện", "Đang sửa", "Sửa xong, chờ QC", "Sẵn sàng trả khách", "Đã trả khách", "Báo giá không sửa"];
             const appId = React.useMemo(() => typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', []);
+            const dataRoot = React.useMemo(() => (typeof window !== 'undefined' && window.__data_root) ? window.__data_root : `artifacts/${appId}/public/data`, [appId]);
 
             React.useEffect(() => {
                 if (!user || !db) { setLoading(false); return; }
                 setLoading(true);
-                const q = db.collection(`artifacts/${appId}/public/data/repairOrders`).orderBy("createdAt", "desc");
+                const q = db.collection(`${dataRoot}/repairOrders`).orderBy("createdAt", "desc");
                 const unsubscribe = q.onSnapshot(
                     (snapshot) => { setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); },
                     (err) => { console.error("Lỗi: ", err); setError("Lỗi tải dữ liệu."); setLoading(false); }
@@ -379,7 +383,7 @@
             React.useEffect(() => {
                 if (!user || !db) { setLoading(false); return; }
                 setLoading(true);
-                const q = db.collection(`artifacts/${appId}/public/data/customers`).orderBy("lastSeen", "desc");
+                const q = db.collection(`${dataRoot}/customers`).orderBy("lastSeen", "desc");
                 const unsubscribe = q.onSnapshot(
                     (snapshot) => { setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); },
                     (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); }
@@ -422,7 +426,7 @@
             React.useEffect(() => {
                 if (!user || !db) { setLoading(false); return; }
                 setLoading(true);
-                const q = db.collection(`artifacts/${appId}/public/data/inventoryParts`).orderBy("partName");
+                const q = db.collection(`${dataRoot}/inventoryParts`).orderBy("partName");
                 const unsubscribe = q.onSnapshot(
                     (snapshot) => { setParts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); },
                     (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); }
@@ -471,7 +475,7 @@
             React.useEffect(() => {
                 if (!user || !db) { setLoading(false); return; }
                 setLoading(true);
-                const q = db.collection(`artifacts/${appId}/public/data/services`).orderBy("serviceName");
+                const q = db.collection(`${dataRoot}/services`).orderBy("serviceName");
                 const unsubscribe = q.onSnapshot(
                     (snapshot) => { setServices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); },
                     (err) => { console.error("Lỗi:", err); setError("Lỗi tải dữ liệu."); setLoading(false); }
@@ -531,7 +535,7 @@
             };
 
             const performDeleteAll = async () => {
-                const dataPathPrefix = `artifacts/${appId}/public/data`;
+                const dataPathPrefix = dataRoot;
                 let totalDeleted = 0;
                 // Xóa tất cả tài liệu trong các bộ sưu tập được chỉ định
                 for (const collectionName of [...staticCollections, ...Object.keys(transactionalCollections)]) {
@@ -557,7 +561,7 @@
             };
 
             const performDeleteByDate = async () => {
-                const dataPathPrefix = `artifacts/${appId}/public/data`;
+                const dataPathPrefix = dataRoot;
                 const start = new Date(selectedDate);
                 start.setHours(0, 0, 0, 0);
                 const end = new Date(selectedDate);
@@ -702,6 +706,7 @@
             const [authReady, setAuthReady] = React.useState(false);
             const [isSidebarOpen, setSidebarOpen] = React.useState(false);
             const [notifications, setNotifications] = React.useState([]);
+            const [dataRoot, setDataRoot] = React.useState(null);
             const addNotification = React.useCallback((message, type = 'success') => {
                 const id = Date.now() + Math.random();
                 setNotifications(prev => [...prev, { id, message, type }]);
@@ -720,6 +725,38 @@
                 return () => unsubscribe();
             }, [authReady]);
 
+            // Phát hiện gốc dữ liệu hiện có (public/data hoặc users/{uid})
+            React.useEffect(() => {
+                const detect = async () => {
+                    try {
+                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                        if (!db) return;
+                        const publicCustomers = await db.collection(`artifacts/${appId}/public/data/customers`).limit(1).get();
+                        if (!publicCustomers.empty) {
+                            const root = `artifacts/${appId}/public/data`;
+                            setDataRoot(root);
+                            window.__data_root = root;
+                            return;
+                        }
+                        if (user && user.uid) {
+                            const userCustomers = await db.collection(`artifacts/${appId}/users/${user.uid}/customers`).limit(1).get();
+                            if (!userCustomers.empty) {
+                                const root = `artifacts/${appId}/users/${user.uid}`;
+                                setDataRoot(root);
+                                window.__data_root = root;
+                                return;
+                            }
+                        }
+                        const fallback = `artifacts/${appId}/public/data`;
+                        setDataRoot(fallback);
+                        window.__data_root = fallback;
+                    } catch (e) {
+                        console.error('Lỗi phát hiện dataRoot:', e);
+                    }
+                };
+                detect();
+            }, [user]);
+
             const handleLogout = () => auth.signOut();
             const renderPage = () => {
                 const props = { user, userRole, addNotification };
@@ -735,6 +772,7 @@
             if (!isFirebaseInitialized) return <div className="p-4 text-center text-red-600">Lỗi cấu hình Firebase.</div>;
             if (!authReady) return <div className="p-4 text-center">Đang khởi tạo...</div>;
             if (!user) return <LoginPage />;
+            if (!dataRoot) return <div className="p-4 text-center">Đang kiểm tra dữ liệu...</div>;
             
             return (
                 <div className="min-h-screen bg-slate-100">
