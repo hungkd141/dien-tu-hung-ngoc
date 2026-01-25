@@ -303,7 +303,7 @@
         };
 
         const NewOrderModal = ({ isOpen, onClose, onSave, orderToEdit, userRole }) => {
-            const initialFormState = { customerName: '', customerPhone: '', customerAddress: '', deviceType: 'Điện thoại', deviceModel: '', deviceSerial: '', devicePassword: '', initialCondition: '', reportedProblem: '', isWarranty: false, originalInvoiceId: '', otherDeviceType: '', completionTime: '', diagnosis: '', repairPlan: '', estimatedCost: '' };
+            const initialFormState = { customerName: '', customerPhone: '', customerAddress: '', deviceType: 'Bếp Từ', deviceModel: '', deviceSerial: '', devicePassword: '', initialCondition: '', reportedProblem: '', isWarranty: false, originalInvoiceId: '', otherDeviceType: '', completionTime: '', diagnosis: '', repairPlan: '', estimatedCost: '' };
             const [formData, setFormData] = React.useState(initialFormState);
             
             const canEditTechnicalDetails = ['admin', 'manager', 'technician'].includes(userRole);
