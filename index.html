@@ -351,80 +351,66 @@
         };
         
         const PrintableReceiptModal = ({ isOpen, onClose, order }) => {
-            if (!isOpen) return null;
-            const printableRef = React.useRef(null);
+    if (!isOpen) return null;
+    const printableRef = React.useRef(null);
 
-            const handlePrint = () => {
-                if (printableRef.current) {
-                    printWithIframe(printableRef.current);
-                }
-            };
-            
-            const getFormattedDate = (date) => {
-                if (!date) return 'N/A';
-                const d = date.toDate ? date.toDate() : new Date(date);
-                return d.toLocaleString('vi-VN');
-            };
+    const handlePrint = () => {
+        if (printableRef.current) {
+            printWithIframe(printableRef.current);
+        }
+    };
+    
+    const getFormattedDate = (date) => {
+        if (!date) return 'N/A';
+        const d = date.toDate ? date.toDate() : new Date(date);
+        return d.toLocaleString('vi-VN');
+    };
 
-            return (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
-                        <div ref={printableRef} className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
-                            <div className="text-center mb-8">
-                                <h1 className="text-2xl font-bold">TRUNG TÂM DỊCH VỤ VÀ PHÁT TRIỂN CÔNG NGHỆ ĐIỆN TỬ HÙNG NGỌC</h1>
-                                <p className="text-sm">Địa chỉ: Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Xuân Phương, Hà Nội </p>
-                                <p className="text-sm">Điện thoại: 094.632.8386</p>
-                            </div>
-                            <h2 className="text-xl font-bold text-center mb-6">PHIẾU NHẬN MÁY</h2>
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                <div><p><strong>Khách hàng:</strong> {order.customerName}</p><p><strong>Điện thoại:</strong> {order.customerPhone}</p></div>
-                                <div className="text-right"><p><strong>Mã Phiếu:</strong> #{order.id.slice(0, 8).toUpperCase()}</p><p><strong>Ngày giờ nhận:</strong> {getFormattedDate(order.createdAt)}</p></div>
-                            </div>
-                            <div className="border-t border-b py-4 my-4">
-                                <h3 className="font-bold mb-2">THÔNG TIN THIẾT BỊ</h3>
-                                <p><strong>Loại máy:</strong> {order.deviceType}</p>
-                                <p><strong>Model:</strong> {order.deviceModel}</p>
-                                <p><strong>Số Serial/IMEI:</strong> {order.deviceSerial}</p>
-                            </div>
-                            <div className="border-b py-4 my-4">
-                                <h3 className="font-bold mb-2">TÌNH TRẠNG & YÊU CẦU</h3>
-                                <p><strong>Tình trạng khi nhận:</strong> {order.initialCondition || 'Không có ghi chú'}</p>
-                                <p><strong>Vấn đề khách báo:</strong> {order.reportedProblem}</p>
-                                <p><strong>Thời gian hẹn trả:</strong> {order.completionTime || 'Sẽ báo sau'}</p>
-                            </div>
-                             <div className="border-b py-4 my-4">
-                                <h3 className="font-bold mb-2">CHUẨN ĐOÁN & PHƯƠNG ÁN</h3>
-                                <p><strong>Chuẩn đoán:</strong> {order.diagnosis || 'Chưa có'}</p>
-                                <p><strong>Phương án sửa chữa:</strong> {order.repairPlan || 'Chưa có'}</p>
-                                <p><strong>Giá dự kiến:</strong> {order.estimatedCost ? order.estimatedCost.toLocaleString('vi-VN') + ' đ' : 'Chưa có'}</p>
-                            </div>
-                            <div className="mt-6 text-xs text-gray-600">
-                                <p className="font-bold">Điều khoản:</p>
-                                <ul className="list-disc list-inside space-y-1">
-                                    <li>Cửa hàng không chịu trách nhiệm về dữ liệu cá nhân của khách hàng.</li>
-                                    <li>Quý khách vui lòng nhận lại máy trong vòng 30 ngày kể từ ngày hẹn.</li>
-                                    <li>Phiếu này có giá trị thay cho giấy biên nhận.</li>
-                                </ul>
-                            </div>
-                            <div className="flex justify-between mt-16">
-                                <div>
-                                    <p className="font-bold">Chữ ký khách hàng</p>
-                                    <p className="mt-12">(Ký và ghi rõ họ tên)</p>
-                                </div>
-                                <div>
-                                    <p className="font-bold">Chữ ký nhân viên</p>
-                                    <p className="mt-12">(Ký và ghi rõ họ tên)</p>
-                                </div>
-                            </div>
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
+                <div ref={printableRef} className="printable-area p-8 text-gray-800 text-sm overflow-y-auto">
+                    <div className="text-center mb-8">
+                        {/* THÔNG TIN CỬA HÀNG TỐI ƯU */}
+                        <h1 className="text-2xl font-bold uppercase">ĐIỆN TỬ HÙNG NGỌC</h1>
+                        <p className="text-sm">Địa chỉ: Đối diện Trường Mầm Non Phương Canh, Tổ 8 Tu Hoàng, Nam Từ Liêm, Hà Nội</p>
+                        <p className="text-sm font-bold">Điện thoại: 094.632.8386</p>
+                    </div>
+                    <h2 className="text-xl font-bold text-center mb-6">PHIẾU NHẬN MÁY</h2>
+                    
+                    {/* THÔNG TIN THIẾT BỊ - ĐÃ SỬA LỖI HIỂN THỊ */}
+                    <div className="border-t border-b py-4 my-4">
+                        <h3 className="font-bold mb-2">THÔNG TIN THIẾT BỊ</h3>
+                        <p><strong>Loại máy:</strong> {order.deviceType}</p> 
+                        <p><strong>Model/Serial:</strong> {order.deviceModel} / {order.deviceSerial}</p>
+                    </div>
+                    
+                    <div className="border-b py-4 my-4">
+                        <h3 className="font-bold mb-2">TÌNH TRẠNG & YÊU CẦU</h3>
+                        <p><strong>Vấn đề khách báo:</strong> {order.reportedProblem}</p>
+                        <p><strong>Giá dự kiến:</strong> {order.estimatedCost ? order.estimatedCost.toLocaleString('vi-VN') + ' đ' : 'Báo sau'}</p>
+                        <p><strong>Hẹn trả:</strong> {order.completionTime || 'Sẽ báo sau'}</p>
+                    </div>
+
+                    <div className="flex justify-between mt-16 text-center">
+                        <div>
+                            <p className="font-bold">Khách hàng</p>
+                            <p className="mt-12 text-xs">(Ký, ghi rõ họ tên)</p>
                         </div>
-                        <div className="p-4 border-t mt-auto flex justify-end items-center gap-4 no-print">
-                            <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Đóng</button>
-                            <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"><PrintIcon /> In Phiếu</button>
+                        <div>
+                            <p className="font-bold">Người lập phiếu</p>
+                            <p className="mt-12 text-xs">(Ký, ghi rõ họ tên)</p>
                         </div>
                     </div>
                 </div>
-            );
-        };
+                <div className="p-4 border-t flex justify-end gap-4 no-print">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Đóng</button>
+                    <button onClick={handlePrint} className="px-4 py-2 bg-blue-600 text-white rounded">In Phiếu</button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
         const PrintableWarrantyModal = ({ isOpen, onClose, invoiceData, orderDetails }) => {
             if (!isOpen) return null;
@@ -730,32 +716,46 @@
             }, [user, db, viewingAs, userRole, allUsers, currentUserId, appId, isViewingAll]);
             
             const handleSaveOrder = React.useCallback(async (orderData) => {
-                const targetUserId = (userRole === 'admin' && viewingAs !== 'all') ? viewingAs : currentUserId;
-                if (!user || !db || !targetUserId) {
-                    addNotification("Không thể xác định cửa hàng để lưu dữ liệu.", "error");
-                    return;
-                }
-                
-                const dataPath = `artifacts/${appId}/users/${targetUserId}`;
-                const { id, ...dataToSave } = orderData;
-                
-                if (dataToSave.deviceType === 'Khác') {
-                    dataToSave.deviceType = dataToSave.otherDeviceType || 'Khác (không rõ)';
-                }
-                delete dataToSave.otherDeviceType;
+    const targetUserId = (userRole === 'admin' && viewingAs !== 'all') ? viewingAs : currentUserId;
+    if (!user || !db || !targetUserId) {
+        addNotification("Không thể xác định cửa hàng để lưu dữ liệu.", "error");
+        return;
+    }
+    
+    const dataPath = `artifacts/${appId}/users/${targetUserId}`;
+    const { id, ...dataToSave } = orderData;
+    
+    // --- ĐOẠN SỬA LỖI TÊN THIẾT BỊ ---
+    if (dataToSave.deviceType === 'Khác') {
+        dataToSave.deviceType = dataToSave.otherDeviceType || 'Khác (không rõ)';
+    }
+    delete dataToSave.otherDeviceType; // Xóa bỏ trường tạm để sạch dữ liệu
+    // ---------------------------------
 
-                try {
-                    if (id) {
-                        await db.collection(`${dataPath}/repairOrders`).doc(id).update(dataToSave);
-                        await logAction(user, 'update', 'Phiếu Sửa Chữa', `Cập nhật phiếu #${id.slice(0,6)} cho KH ${dataToSave.customerName}.`, id);
-                        addNotification('Cập nhật phiếu thành công!', 'success');
-                    } else {
-                        const orderRef = await db.collection(`${dataPath}/repairOrders`).add({ ...dataToSave, status: 'Mới nhận', createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: user.uid });
-                        await orderRef.update({ orderId: orderRef.id });
-                        setReceiptToPrint({ ...dataToSave, id: orderRef.id, createdAt: new Date() });
-                        await logAction(user, 'create', 'Phiếu Sửa Chữa', `Tạo mới phiếu cho KH ${dataToSave.customerName}.`, orderRef.id);
-                        addNotification('Tạo phiếu mới thành công!', 'success');
-                    }
+    try {
+        if (id) {
+            await db.collection(`${dataPath}/repairOrders`).doc(id).update(dataToSave);
+            await logAction(user, 'update', 'Phiếu Sửa Chữa', `Cập nhật phiếu #${id.slice(0,6)} cho KH ${dataToSave.customerName}.`, id);
+            addNotification('Cập nhật phiếu thành công!', 'success');
+        } else {
+            const orderRef = await db.collection(`${dataPath}/repairOrders`).add({ ...dataToSave, status: 'Mới nhận', createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: user.uid });
+            await orderRef.update({ orderId: orderRef.id });
+            
+            // Cập nhật state để in đúng dữ liệu vừa lưu
+            setReceiptToPrint({ ...dataToSave, id: orderRef.id, createdAt: new Date() });
+            
+            await logAction(user, 'create', 'Phiếu Sửa Chữa', `Tạo mới phiếu cho KH ${dataToSave.customerName}.`, orderRef.id);
+            addNotification('Tạo phiếu mới thành công!', 'success');
+        }
+        // Lưu thông tin khách hàng
+        const customerDocRef = db.collection(`${dataPath}/customers`).doc(dataToSave.customerPhone);
+        await customerDocRef.set({ customerName: dataToSave.customerName, customerPhone: dataToSave.customerPhone, customerAddress: dataToSave.customerAddress, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+
+    } catch (e) { 
+        console.error("Lỗi: ", e); 
+        addNotification('Lỗi khi lưu phiếu.', 'error');
+    }
+}, [user, appId, addNotification, userRole, viewingAs, currentUserId]);
                     const customerDocRef = db.collection(`${dataPath}/customers`).doc(dataToSave.customerPhone);
                     await customerDocRef.set({ customerName: dataToSave.customerName, customerPhone: dataToSave.customerPhone, customerAddress: dataToSave.customerAddress, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
 
